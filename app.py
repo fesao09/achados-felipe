@@ -277,7 +277,7 @@ elif menu == "📋 Central de Pendentes (Kanban)":
       " redes onde já postou."
   )
 
-  # Botão de Exportar para Excel
+  # Botão de Exportar para Excel com tratamento de segurança
   df_full = run_query("""
         SELECT c.id, p.nome as produto, c.titulo, c.tipo_midia, c.status, 
                c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee 
@@ -286,19 +286,25 @@ elif menu == "📋 Central de Pendentes (Kanban)":
     """)
 
   if not df_full.empty:
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-      df_full.to_excel(writer, index=False, sheet_name="Pendentes_Achados")
-    excel_data = output.getvalue()
+    try:
+      output = io.BytesIO()
+      with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df_full.to_excel(writer, index=False, sheet_name="Pendentes_Achados")
+      excel_data = output.getvalue()
 
-    st.download_button(
-        label="📥 Exportar Dados para Excel (.xlsx)",
-        data=excel_data,
-        file_name="central_achados_felipe.xlsx",
-        mime=(
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        ),
-    )
+      st.download_button(
+          label="📥 Exportar Dados para Excel (.xlsx)",
+          data=excel_data,
+          file_name="central_achados_felipe.xlsx",
+          mime=(
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          ),
+      )
+    except Exception:
+      st.info(
+          "💡 (Exportação para Excel temporariamente indisponível - focada no"
+          " Kanban)"
+      )
     st.markdown("---")
 
   df_kanban = run_query("""
