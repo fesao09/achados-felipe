@@ -1,3 +1,4 @@
+import io
 import os
 import sqlite3
 import pandas as pd
@@ -26,7 +27,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- BANCO DE DADOS LOCAL (SQLite) ---
+# --- BANCO DE DADOS LOCAL (SQLite com Auto-Correção) ---
 DB_FILE = "achados_felipe.db"
 
 
@@ -46,13 +47,27 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             produto_id INTEGER,
             titulo TEXT,
-            plataforma TEXT,
             tipo_midia TEXT,
-            status TEXT,
             pacote_completo TEXT,
+            post_tiktok INTEGER DEFAULT 0,
+            post_instagram INTEGER DEFAULT 0,
+            post_pinterest INTEGER DEFAULT 0,
+            post_shopee INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'Pendente 🟡',
             FOREIGN KEY(produto_id) REFERENCES produtos(id)
         )
     """)
+  for col, tipo in [
+      ("post_tiktok", "INTEGER DEFAULT 0"),
+      ("post_instagram", "INTEGER DEFAULT 0"),
+      ("post_pinterest", "INTEGER DEFAULT 0"),
+      ("post_shopee", "INTEGER DEFAULT 0"),
+  ]:
+    try:
+      cursor.execute(f"ALTER TABLE conteudos ADD COLUMN {col} {tipo}")
+    except sqlite3.OperationalError:
+      pass
+
   conn.commit()
   conn.close()
 
@@ -75,7 +90,6 @@ def run_query(query, params=(), fetch=True):
 
 # --- CONFIGURAÇÃO DA IA (GEMINI API) ---
 try:
-  # Pega a chave dos secrets do Streamlit
   api_key = st.secrets["GEMINI_API_KEY"]
   client = genai.Client(api_key=api_key)
   IA_DISPONIVEL = True
@@ -91,7 +105,7 @@ menu = st.sidebar.selectbox(
         "📊 Dashboard & Metas",
         "📦 Catálogo de Produtos",
         "🎬 Gerador com IA do Gemini",
-        "📋 Kanban de Postagens",
+        "📋 Central de Pendentes (Kanban)",
     ],
 )
 
@@ -100,7 +114,7 @@ if menu == "📊 Dashboard & Metas":
   st.title("📊 Painel de Controle & Campanhas")
 
   df_conteudos = run_query(
-      "SELECT * FROM conteudos WHERE status LIKE '%Publicado%'"
+      "SELECT * FROM conteudos WHERE status LIKE '%Concluído%'"
   )
   total_publicados = len(df_conteudos)
   meta_videos = 15
@@ -108,7 +122,7 @@ if menu == "📊 Dashboard & Metas":
   col1, col2, col3 = st.columns(3)
   with col1:
     st.markdown(
-        f'<div class="metric-card"><h3>Vídeos TikTok</h3><h2>'
+        f'<div class="metric-card"><h3>Vídeos Concluídos</h3><h2>'
         f" {total_publicados} / {meta_videos}</h2></div>",
         unsafe_allow_html=True,
     )
@@ -118,16 +132,21 @@ if menu == "📊 Dashboard & Metas":
         unsafe_allow_html=True,
     )
   with col3:
-    progresso = int((total_publicados / meta_videos) * 100)
+    progresso = (
+        int((total_publicados / meta_videos) * 100)
+        if meta_videos > 0
+        else 0
+    )
     st.markdown(
-        f'<div class="metric-card"><h3>Progresso</h3><h2>{progresso}%</h2></div>',
+        f'<div class="metric-card"><h3>Progresso Geral</h3><h2>'
+        f" {progresso}%</h2></div>",
         unsafe_allow_html=True,
     )
 
   st.markdown("---")
-  st.subheader("🚀 Últimos Projetos")
+  st.subheader("🚀 Últimos Projetos Criados")
   df_recentes = run_query("""
-        SELECT c.id, p.nome as produto, c.titulo, c.plataforma, c.status 
+        SELECT c.id, p.nome as produto, c.titulo, c.status 
         FROM conteudos c 
         LEFT JOIN produtos p ON c.produto_id = p.id 
         ORDER BY c.id DESC LIMIT 5
@@ -138,7 +157,7 @@ if menu == "📊 Dashboard & Metas":
           f"""
             <div class="card">
                 <b>📦 {row['produto']}</b> | 🎯 {row['titulo']}<br>
-                <small>Plataforma: {row['plataforma']} | Status: <b>{row['status']}</b></small>
+                <small>Status: <b>{row['status']}</b></small>
             </div>
             """,
           unsafe_allow_html=True,
@@ -152,7 +171,7 @@ elif menu == "📦 Catálogo de Produtos":
 
   with st.form("form_produto"):
     st.subheader("Cadastrar Novo Produto")
-    nome_prod = st.text_input("Nome do Produto (ex: Kit BT21 Secret Fragrance)")
+    nome_prod = st.text_input("Nome do Produto (ex: Luminária Capivara 3D)")
     nicho_prod = st.selectbox(
         "Nicho", ["Moda Praia", "K-pop / Colecionáveis", "Beleza", "Casa"]
     )
@@ -168,7 +187,7 @@ elif menu == "📦 Catálogo de Produtos":
       st.success(f"Produto '{nome_prod}' cadastrado com sucesso!")
 
   st.markdown("---")
-  st.subheader("Lista de Produtos")
+  st.subheader("Lista de Produtos Cadastrados")
   df_prods = run_query("SELECT * FROM produtos")
   if not df_prods.empty:
     st.dataframe(df_prods, width="stretch")
@@ -179,15 +198,12 @@ elif menu == "📦 Catálogo de Produtos":
 elif menu == "🎬 Gerador com IA do Gemini":
   st.title("🎬 Gerador de Pacote Inteligente (Powered by Gemini)")
   st.markdown(
-      "A IA vai ler o produto selecionado e estruturar o pacote completo com"
-      " ganchos, prompts e legendas em português do Brasil 100% natural."
+      "A IA lê o produto cadastrado e cria roteiros, prompts e legendas"
+      " otimizados."
   )
 
   if not IA_DISPONIVEL:
-    st.error(
-        "⚠️ Chave da API do Gemini não configurada nos 'Secrets' do Streamlit."
-        " Configure para ativar a IA."
-    )
+    st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
 
   df_produtos = run_query("SELECT id, nome FROM produtos")
   if not df_produtos.empty:
@@ -207,100 +223,168 @@ elif menu == "🎬 Gerador com IA do Gemini":
     )
 
     if st.button("Gerar Pacote Completo com IA 🚀") and IA_DISPONIVEL:
-      with st.spinner("A Inteligência Artificial está criando o seu pacote..."):
+      with st.spinner(
+          "A Inteligência Artificial está estruturando seu pacote..."
+      ):
         prompt_sistema = f"""
                 Atue como um estrategista especialista em marketing de afiliados para o projeto 'Achados do Felipe'.
-                Gere um pacote completo de conteúdo em português 100% natural do Brasil (sem termos de Portugal ou espanhol) para o produto: '{prod_escolhido}'.
+                Gere um pacote completo de conteúdo em português 100% natural do Brasil para o produto: '{prod_escolhido}'.
                 O formato escolhido é: '{formato_midia}'.
                 
                 Estruture a resposta exatamente com os seguintes tópicos em Markdown:
                 ### 🎯 1. GANCHOS E TÍTULOS (0 a 3 segundos)
-                (Duas opções de ganchos fortes para prender a atenção)
+                (Duas opções de ganchos fortes)
                 
                 ### 🎬 2. ROTEIRO & PROMPT DE CRIAÇÃO
-                (Prompt detalhado em inglês otimizado para ferramentas de IA de vídeo ou imagem, mais dicas de direção)
+                (Prompt detalhado em inglês para IA de vídeo/imagem e dicas de direção)
                 
                 ### 📱 3. TEXTOS E LEGENDAS POR REDE SOCIAL
-                (Legenda engajadora para TikTok/Instagram e título/descrição rica e detalhada para o Pinterest)
+                (Legenda para TikTok/Instagram e título/descrição rica para o Pinterest)
                 
                 ### #️⃣ 4. HASHTAGS E INSIGHTS
-                (Hashtags estratégicas e chamada para ação / CTA para a sacolinha amarela)
+                (Hashtags estratégicas e CTA para sacolinha amarela)
                 """
 
-        # Chamada real para a API do Gemini
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt_sistema,
         )
         pacote_gerado = response.text
 
-        st.success("Pacote gerado pela IA com sucesso!")
+        st.success("Pacote gerado com sucesso!")
         st.markdown(pacote_gerado)
 
-        if st.button("💾 Salvar na Central como Pendente"):
+        if st.button("💾 Salvar na Central de Pendentes"):
           run_query(
               """
-                        INSERT INTO conteudos (produto_id, titulo, plataforma, tipo_midia, status, pacote_completo)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        INSERT INTO conteudos (produto_id, titulo, tipo_midia, pacote_completo, status)
+                        VALUES (?, ?, ?, ?, 'Pendente 🟡')
                     """,
-              (
-                  prod_id,
-                  f"Campanha: {prod_escolhido}",
-                  "TikTok / Instagram / Pinterest",
-                  formato_midia,
-                  "Pendente 🟡",
-                  pacote_gerado,
-              ),
+              (prod_id, f"Campanha: {prod_escolhido}", formato_midia, pacote_gerado),
               fetch=False,
           )
-          st.success("Salvo com sucesso na sua Central de Postagens!")
+          st.success(
+              "Salvo com sucesso! Acesse a aba 'Central de Pendentes' para"
+              " visualizar e gerenciar."
+          )
   else:
     st.warning("Cadastre um produto na aba de Catálogo primeiro.")
 
-# --- TELA 4: KANBAN DE POSTAGENS ---
-elif menu == "📋 Kanban de Postagens":
-  st.title("📋 Central de Publicações (Kanban)")
-  st.markdown("Acompanhe o que está pendente, pronto ou postado.")
+# --- TELA 4: CENTRAL DE PENDENTES (COM BOTÕES DE CÓPIA RÁPIDA) ---
+elif menu == "📋 Central de Pendentes (Kanban)":
+  st.title("📋 Central de Pendentes & Redes Sociais")
+  st.markdown(
+      "Abra o card do produto, copie o que precisar com um toque e marque as"
+      " redes onde já postou."
+  )
+
+  # Botão de Exportar para Excel
+  df_full = run_query("""
+        SELECT c.id, p.nome as produto, c.titulo, c.tipo_midia, c.status, 
+               c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee 
+        FROM conteudos c 
+        LEFT JOIN produtos p ON c.produto_id = p.id
+    """)
+
+  if not df_full.empty:
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+      df_full.to_excel(writer, index=False, sheet_name="Pendentes_Achados")
+    excel_data = output.getvalue()
+
+    st.download_button(
+        label="📥 Exportar Dados para Excel (.xlsx)",
+        data=excel_data,
+        file_name="central_achados_felipe.xlsx",
+        mime=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+    )
+    st.markdown("---")
 
   df_kanban = run_query("""
-        SELECT c.id, p.nome as produto, c.titulo, c.plataforma, c.tipo_midia, c.status, c.pacote_completo 
+        SELECT c.id, p.nome as produto, c.titulo, c.tipo_midia, c.status, 
+               c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee, c.pacote_completo 
         FROM conteudos c 
         LEFT JOIN produtos p ON c.produto_id = p.id 
+        WHERE c.status != 'Concluído ✔️'
         ORDER BY c.id DESC
     """)
 
   if not df_kanban.empty:
     for _, row in df_kanban.iterrows():
-      status_cor = (
-          "🟡" if "Pendente" in str(row["status"]) else "🟢"
-      )
-      with st.expander(
-          f"{status_cor} [{row['produto']}] - {row['titulo']} ({row['status']})"
-      ):
-        st.markdown(f"**Plataforma:** {row['plataforma']}")
+      with st.expander(f"🟡 [{row['produto']}] - {row['titulo']}"):
         st.markdown(f"**Tipo de Mídia:** {row['tipo_midia']}")
         st.markdown("---")
-        st.markdown(row["pacote_completo"])
-        st.markdown("---")
 
-        col_A, col_B = st.columns(2)
-        with col_A:
-          if st.button("Marcar como Pronto 🟢", key=f"pronto_{row['id']}"):
-            run_query(
-                "UPDATE conteudos SET status = 'Pronto 🟢' WHERE id = ?",
-                (row["id"],),
-                fetch=False,
-            )
-            st.rerun()
-        with col_B:
-          if st.button(
-              "Marcar como Publicado ✔️", key=f"pub_{row['id']}"
-          ):
-            run_query(
-                "UPDATE conteudos SET status = 'Publicado ✔️' WHERE id = ?",
-                (row["id"],),
-                fetch=False,
-            )
-            st.rerun()
+        # Exibe o texto completo
+        texto_pacote = row["pacote_completo"]
+        st.markdown(texto_pacote)
+
+        # Botão nativo do Streamlit para copiar o pacote inteiro para a área de transferência
+        st.code(texto_pacote, language="markdown")
+        st.info(
+            "👆 *Dica:* O bloco acima possui um botão de cópia rápida no canto"
+            " superior direito para copiar todo o roteiro de uma vez só!"
+        )
+
+        st.markdown("---")
+        st.markdown("**Checklist de Postagem por Rede:**")
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+          t = st.checkbox(
+              "TikTok",
+              value=bool(row["post_tiktok"]),
+              key=f"tik_{row['id']}",
+          )
+        with col2:
+          i = st.checkbox(
+              "Instagram",
+              value=bool(row["post_instagram"]),
+              key=f"ig_{row['id']}",
+          )
+        with col3:
+          p = st.checkbox(
+              "Pinterest",
+              value=bool(row["post_pinterest"]),
+              key=f"pin_{row['id']}",
+          )
+        with col4:
+          s = st.checkbox(
+              "Shopee",
+              value=bool(row["post_shopee"]),
+              key=f"shp_{row['id']}",
+          )
+
+        if (
+            t != bool(row["post_tiktok"])
+            or i != bool(row["post_instagram"])
+            or p != bool(row["post_pinterest"])
+            or s != bool(row["post_shopee"])
+        ):
+          run_query(
+              """
+                        UPDATE conteudos 
+                        SET post_tiktok = ?, post_instagram = ?, post_pinterest = ?, post_shopee = ?
+                        WHERE id = ?
+                    """,
+              (int(t), int(i), int(p), int(s), row["id"]),
+              fetch=False,
+          )
+          st.rerun()
+
+        st.markdown("")
+        if st.button("Concluir e remover da Central ✔️", key=f"concluir_{row['id']}"):
+          run_query(
+              "UPDATE conteudos SET status = 'Concluído ✔️' WHERE id = ?",
+              (row["id"],),
+              fetch=False,
+          )
+          st.success("Conteúdo concluído e arquivado!")
+          st.rerun()
   else:
-    st.info("Nenhum conteúdo cadastrado na central ainda.")
+    st.success(
+        "🎉 Nenhum item pendente na central! Todos os conteúdos foram"
+        " postados e concluídos."
+    )
