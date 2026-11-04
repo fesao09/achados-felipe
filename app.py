@@ -171,7 +171,7 @@ elif menu == "📦 Catálogo de Produtos":
 
   with st.form("form_produto"):
     st.subheader("Cadastrar Novo Produto")
-    nome_prod = st.text_input("Nome do Produto (ex: Luminária Capivara 3D)")
+    nome_prod = st.text_input("Nome do Produto")
     nicho_prod = st.selectbox(
         "Nicho", ["Moda Praia", "K-pop / Colecionáveis", "Beleza", "Casa"]
     )
@@ -254,18 +254,31 @@ elif menu == "🎬 Gerador com IA do Gemini":
         st.success("Pacote gerado com sucesso!")
         st.markdown(pacote_gerado)
 
-        if st.button("💾 Salvar na Central de Pendentes"):
+        # Guarda o texto gerado temporariamente no session_state para garantir o salvamento limpo
+        st.session_state["ultimo_pacote"] = pacote_gerado
+        st.session_state["ultimo_prod_id"] = prod_id
+        st.session_state["ultimo_formato"] = formato_midia
+        st.session_state["ultimo_nome_prod"] = prod_escolhido
+
+      # Botão fora do spinner para salvar com segurança
+      if "ultimo_pacote" in st.session_state:
+        if st.button("💾 Salvar na Central de Pendentes Agora"):
           run_query(
               """
                         INSERT INTO conteudos (produto_id, titulo, tipo_midia, pacote_completo, status)
                         VALUES (?, ?, ?, ?, 'Pendente 🟡')
                     """,
-              (prod_id, f"Campanha: {prod_escolhido}", formato_midia, pacote_gerado),
+              (
+                  st.session_state["ultimo_prod_id"],
+                  f"Campanha: {st.session_state['ultimo_nome_prod']}",
+                  st.session_state["ultimo_formato"],
+                  st.session_state["ultimo_pacote"],
+              ),
               fetch=False,
           )
           st.success(
-              "Salvo com sucesso! Acesse a aba 'Central de Pendentes' para"
-              " visualizar e gerenciar."
+              "Salvo com sucesso! Acesse a aba 'Central de Pendentes (Kanban)'"
+              " para visualizar."
           )
   else:
     st.warning("Cadastre um produto na aba de Catálogo primeiro.")
@@ -302,26 +315,29 @@ elif menu == "📋 Central de Pendentes (Kanban)":
     )
     st.markdown("---")
 
+  # Busca todos os itens (removido o filtro restritivo para garantir que apareçam)
   df_kanban = run_query("""
         SELECT c.id, p.nome as produto, c.titulo, c.tipo_midia, c.status, 
                c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee, c.pacote_completo 
         FROM conteudos c 
         LEFT JOIN produtos p ON c.produto_id = p.id 
-        WHERE c.status != 'Concluído ✔️'
         ORDER BY c.id DESC
     """)
 
   if not df_kanban.empty:
     for _, row in df_kanban.iterrows():
-      with st.expander(f"🟡 [{row['produto']}] - {row['titulo']}"):
+      status_icone = (
+          "✔️" if "Concluído" in str(row["status"]) else "🟡 Pendente"
+      )
+      with st.expander(
+          f"[{status_icone}] {row['produto']} - {row['titulo']}"
+      ):
         st.markdown(f"**Tipo de Mídia:** {row['tipo_midia']}")
         st.markdown("---")
 
-        # Exibe o texto completo
         texto_pacote = row["pacote_completo"]
         st.markdown(texto_pacote)
 
-        # Botão nativo do Streamlit para copiar o pacote inteiro para a área de transferência
         st.code(texto_pacote, language="markdown")
         st.info(
             "👆 *Dica:* O bloco acima possui um botão de cópia rápida no canto"
@@ -375,16 +391,22 @@ elif menu == "📋 Central de Pendentes (Kanban)":
           st.rerun()
 
         st.markdown("")
-        if st.button("Concluir e remover da Central ✔️", key=f"concluir_{row['id']}"):
-          run_query(
-              "UPDATE conteudos SET status = 'Concluído ✔️' WHERE id = ?",
-              (row["id"],),
-              fetch=False,
-          )
-          st.success("Conteúdo concluído e arquivado!")
-          st.rerun()
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+          if st.button("Marcar como Concluído ✔️", key=f"concluir_{row['id']}"):
+            run_query(
+                "UPDATE conteudos SET status = 'Concluído ✔️' WHERE id = ?",
+                (row["id"],),
+                fetch=False,
+            )
+            st.success("Conteúdo marcado como concluído!")
+            st.rerun()
+        with col_btn2:
+          if st.button("Excluir Item 🗑️", key=f"excluir_{row['id']}"):
+            run_query(
+                "DELETE FROM conteudos WHERE id = ?", (row["id"],), fetch=False
+            )
+            st.success("Item removido da central!")
+            st.rerun()
   else:
-    st.success(
-        "🎉 Nenhum item pendente na central! Todos os conteúdos foram"
-        " postados e concluídos."
-    )
+    st.info("Nenhum conteúdo cadastrado na central ainda.")
