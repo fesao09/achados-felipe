@@ -232,18 +232,18 @@ elif menu == "🎬 Gerador com IA do Gemini":
                 Gere um pacote completo de conteúdo em português 100% natural do Brasil para o produto: '{prod_escolhido}'.
                 O formato escolhido é: '{formato_midia}'.
                 
-                Estruture a resposta exatamente com os seguintes tópicos em Markdown:
+                Estruture a resposta exatamente com os seguintes tópicos em Markdown, usando exatamente estes cabeçalhos:
                 ### 🎯 1. GANCHOS E TÍTULOS (0 a 3 segundos)
-                (Duas opções de ganchos fortes)
+                (Insira as opções de ganchos aqui)
                 
                 ### 🎬 2. ROTEIRO & PROMPT DE CRIAÇÃO
-                (Prompt detalhado em inglês para IA de vídeo/imagem e dicas de direção)
+                (Insira o prompt e dicas de direção aqui)
                 
                 ### 📱 3. TEXTOS E LEGENDAS POR REDE SOCIAL
-                (Legenda para TikTok/Instagram e título/descrição rica para o Pinterest)
+                (Insira as legendas e descrições aqui)
                 
                 ### #️⃣ 4. HASHTAGS E INSIGHTS
-                (Hashtags estratégicas e CTA para sacolinha amarela)
+                (Insira as hashtags e CTA aqui)
                 """
 
         response = client.models.generate_content(
@@ -268,15 +268,14 @@ elif menu == "🎬 Gerador com IA do Gemini":
   else:
     st.warning("Cadastre um produto na aba de Catálogo primeiro.")
 
-# --- TELA 4: CENTRAL DE PENDENTES (OTIMIZADA E COM CÓPIA POR SEÇÃO) ---
+# --- TELA 4: CENTRAL DE PENDENTES (SEPARADO POR TÓPICOS) ---
 elif menu == "📋 Central de Pendentes (Kanban)":
   st.title("📋 Central de Pendentes & Redes Sociais")
   st.markdown(
-      "Abra o card, copie facilmente o que precisar por seção e marque as redes"
-      " onde já postou."
+      "Abra o card e copie cada pedacinho separadamente com facilidade no"
+      " celular."
   )
 
-  # Botão de Exportar para Excel com tratamento de segurança
   df_full = run_query("""
         SELECT c.id, p.nome as produto, c.titulo, c.tipo_midia, c.status, 
                c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee 
@@ -322,25 +321,74 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         st.markdown(f"**Tipo de Mídia:** {row['tipo_midia']}")
         st.markdown("---")
 
+        # Função simples para quebrar o texto gerado por seções
         texto_completo = str(row["pacote_completo"])
 
-        # Separação inteligente por tópicos para facilitar a cópia focada no celular
-        st.markdown("### 📋 Conteúdo Completo & Cópia Rápida")
-        st.markdown(
-            "Use os blocos abaixo para copiar partes específicas ou o pacote"
-            " inteiro com um toque:"
+        # Divisão inteligente baseada nos títulos gerados pela IA
+        partes = {
+            "Ganchos e Títulos": "",
+            "Roteiro e Prompt": "",
+            "Textos e Legendas": "",
+            "Hashtags e CTA": "",
+        }
+
+        try:
+          # Tentativa de fatiar o texto gerado de acordo com os marcadores
+          blocos = texto_completo.split("###")
+          for bloco in blocos:
+            if "1. GANCHOS" in bloco or "GANCHOS" in bloco:
+              partes["Ganchos e Títulos"] = bloco.replace(
+                  "🎯 1. GANCHOS E TÍTULOS (0 a 3 segundos)", ""
+              ).strip()
+            elif "2. ROTEIRO" in bloco or "ROTEIRO" in bloco:
+              partes["Roteiro e Prompt"] = bloco.replace(
+                  "🎬 2. ROTEIRO & PROMPT DE CRIAÇÃO", ""
+              ).strip()
+            elif "3. TEXTOS" in bloco or "TEXTOS" in bloco:
+              partes["Textos e Legendas"] = bloco.replace(
+                  "📱 3. TEXTOS E LEGENDAS POR REDE SOCIAL", ""
+              ).strip()
+            elif "4. HASHTAGS" in bloco or "HASHTAGS" in bloco:
+              partes["Hashtags e CTA"] = bloco.replace(
+                  "#️⃣ 4. HASHTAGS E INSIGHTS", ""
+              ).strip()
+        except Exception:
+          pass
+
+        # Se por acaso a IA variar o formato, exibimos o texto completo como fallback nas caixas
+        if not partes["Ganchos e Títulos"]:
+          partes["Ganchos e Títulos"] = texto_completo
+
+        st.markdown("### 🎯 1. Ganchos e Títulos")
+        st.text_area(
+            "Copiar Ganchos",
+            value=partes["Ganchos e Títulos"],
+            height=80,
+            key=f"ganchos_{row['id']}",
         )
 
-        # Bloco de Cópia Única do Pacote Completo
+        st.markdown("### 🎬 2. Roteiro e Prompt de Vídeo")
         st.text_area(
-            f"Pacote Inteiro (ID {row['id']})",
-            value=texto_completo,
-            height=150,
-            key=f"txt_full_{row['id']}",
+            "Copiar Prompt",
+            value=partes["Roteiro e Prompt"],
+            height=100,
+            key=f"prompt_{row['id']}",
         )
-        st.info(
-            "💡 *Dica Mobile:* O campo acima permite selecionar e copiar"
-            " facilmente o texto."
+
+        st.markdown("### 📱 3. Textos e Legendas")
+        st.text_area(
+            "Copiar Legendas",
+            value=partes["Textos e Legendas"],
+            height=120,
+            key=f"legendas_{row['id']}",
+        )
+
+        st.markdown("### #️⃣ 4. Hashtags e CTA")
+        st.text_area(
+            "Copiar Hashtags",
+            value=partes["Hashtags e CTA"],
+            height=80,
+            key=f"tags_{row['id']}",
         )
 
         st.markdown("---")
