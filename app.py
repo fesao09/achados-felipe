@@ -194,12 +194,12 @@ elif menu == "📦 Catálogo de Produtos":
   else:
     st.info("Nenhum produto cadastrado.")
 
-# --- TELA 3: GERADOR COM IA DO GEMINI ---
+# --- TELA 3: GERADOR COM IA DO GEMINI (SALVAMENTO AUTOMÁTICO) ---
 elif menu == "🎬 Gerador com IA do Gemini":
   st.title("🎬 Gerador de Pacote Inteligente (Powered by Gemini)")
   st.markdown(
-      "A IA lê o produto cadastrado e cria roteiros, prompts e legendas"
-      " otimizados."
+      "A IA lê o produto cadastrado, gera o roteiro e **salva automaticamente**"
+      " na sua Central de Pendentes."
   )
 
   if not IA_DISPONIVEL:
@@ -222,9 +222,10 @@ elif menu == "🎬 Gerador com IA do Gemini":
         ],
     )
 
-    if st.button("Gerar Pacote Completo com IA 🚀") and IA_DISPONIVEL:
+    if st.button("Gerar e Salvar Pacote com IA 🚀") and IA_DISPONIVEL:
       with st.spinner(
-          "A Inteligência Artificial está estruturando seu pacote..."
+          "A Inteligência Artificial está estruturando e salvando seu"
+          " pacote..."
       ):
         prompt_sistema = f"""
                 Atue como um estrategista especialista em marketing de afiliados para o projeto 'Achados do Felipe'.
@@ -251,35 +252,20 @@ elif menu == "🎬 Gerador com IA do Gemini":
         )
         pacote_gerado = response.text
 
-        st.success("Pacote gerado com sucesso!")
+        # SALVAMENTO AUTOMÁTICO IMEDIATO NO BANCO DE DADOS
+        run_query(
+            """
+                INSERT INTO conteudos (produto_id, titulo, tipo_midia, pacote_completo, status)
+                VALUES (?, ?, ?, ?, 'Pendente 🟡')
+            """,
+            (prod_id, f"Campanha: {prod_escolhido}", formato_midia, pacote_gerado),
+            fetch=False,
+        )
+
+        st.success(
+            "🎉 Pacote gerado e salvo automaticamente na Central de Pendentes!"
+        )
         st.markdown(pacote_gerado)
-
-        # Guarda o texto gerado temporariamente no session_state para garantir o salvamento limpo
-        st.session_state["ultimo_pacote"] = pacote_gerado
-        st.session_state["ultimo_prod_id"] = prod_id
-        st.session_state["ultimo_formato"] = formato_midia
-        st.session_state["ultimo_nome_prod"] = prod_escolhido
-
-      # Botão fora do spinner para salvar com segurança
-      if "ultimo_pacote" in st.session_state:
-        if st.button("💾 Salvar na Central de Pendentes Agora"):
-          run_query(
-              """
-                        INSERT INTO conteudos (produto_id, titulo, tipo_midia, pacote_completo, status)
-                        VALUES (?, ?, ?, ?, 'Pendente 🟡')
-                    """,
-              (
-                  st.session_state["ultimo_prod_id"],
-                  f"Campanha: {st.session_state['ultimo_nome_prod']}",
-                  st.session_state["ultimo_formato"],
-                  st.session_state["ultimo_pacote"],
-              ),
-              fetch=False,
-          )
-          st.success(
-              "Salvo com sucesso! Acesse a aba 'Central de Pendentes (Kanban)'"
-              " para visualizar."
-          )
   else:
     st.warning("Cadastre um produto na aba de Catálogo primeiro.")
 
@@ -315,7 +301,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
     )
     st.markdown("---")
 
-  # Busca todos os itens (removido o filtro restritivo para garantir que apareçam)
   df_kanban = run_query("""
         SELECT c.id, p.nome as produto, c.titulo, c.tipo_midia, c.status, 
                c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee, c.pacote_completo 
