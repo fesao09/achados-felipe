@@ -13,21 +13,21 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Estilização CSS (Dark Mode / Moderno)
+# Estilização CSS (Dark Mode / Moderno e Otimizado para Mobile)
 st.markdown(
     """
     <style>
     .main { background-color: #121212; color: #ffffff; }
     .stSidebar { background-color: #181818; }
     h1, h2, h3 { color: #1DB954 !important; }
-    .card { background-color: #282828; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .card { background-color: #282828; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .metric-card { background-color: #282828; padding: 15px; border-radius: 10px; text-align: center; }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# --- BANCO DE DADOS LOCAL (SQLite com Auto-Correção) ---
+# --- BANCO DE DADOS LOCAL ---
 DB_FILE = "achados_felipe.db"
 
 
@@ -194,7 +194,7 @@ elif menu == "📦 Catálogo de Produtos":
   else:
     st.info("Nenhum produto cadastrado.")
 
-# --- TELA 3: GERADOR COM IA DO GEMINI (SALVAMENTO AUTOMÁTICO) ---
+# --- TELA 3: GERADOR COM IA DO GEMINI ---
 elif menu == "🎬 Gerador com IA do Gemini":
   st.title("🎬 Gerador de Pacote Inteligente (Powered by Gemini)")
   st.markdown(
@@ -252,7 +252,6 @@ elif menu == "🎬 Gerador com IA do Gemini":
         )
         pacote_gerado = response.text
 
-        # SALVAMENTO AUTOMÁTICO IMEDIATO NO BANCO DE DADOS
         run_query(
             """
                 INSERT INTO conteudos (produto_id, titulo, tipo_midia, pacote_completo, status)
@@ -269,12 +268,12 @@ elif menu == "🎬 Gerador com IA do Gemini":
   else:
     st.warning("Cadastre um produto na aba de Catálogo primeiro.")
 
-# --- TELA 4: CENTRAL DE PENDENTES (COM BOTÕES DE CÓPIA RÁPIDA) ---
+# --- TELA 4: CENTRAL DE PENDENTES (OTIMIZADA E COM CÓPIA POR SEÇÃO) ---
 elif menu == "📋 Central de Pendentes (Kanban)":
   st.title("📋 Central de Pendentes & Redes Sociais")
   st.markdown(
-      "Abra o card do produto, copie o que precisar com um toque e marque as"
-      " redes onde já postou."
+      "Abra o card, copie facilmente o que precisar por seção e marque as redes"
+      " onde já postou."
   )
 
   # Botão de Exportar para Excel com tratamento de segurança
@@ -301,10 +300,7 @@ elif menu == "📋 Central de Pendentes (Kanban)":
           ),
       )
     except Exception:
-      st.info(
-          "💡 (Exportação para Excel temporariamente indisponível - focada no"
-          " Kanban)"
-      )
+      pass
     st.markdown("---")
 
   df_kanban = run_query("""
@@ -326,13 +322,25 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         st.markdown(f"**Tipo de Mídia:** {row['tipo_midia']}")
         st.markdown("---")
 
-        texto_pacote = row["pacote_completo"]
-        st.markdown(texto_pacote)
+        texto_completo = str(row["pacote_completo"])
 
-        st.code(texto_pacote, language="markdown")
+        # Separação inteligente por tópicos para facilitar a cópia focada no celular
+        st.markdown("### 📋 Conteúdo Completo & Cópia Rápida")
+        st.markdown(
+            "Use os blocos abaixo para copiar partes específicas ou o pacote"
+            " inteiro com um toque:"
+        )
+
+        # Bloco de Cópia Única do Pacote Completo
+        st.text_area(
+            f"Pacote Inteiro (ID {row['id']})",
+            value=texto_completo,
+            height=150,
+            key=f"txt_full_{row['id']}",
+        )
         st.info(
-            "👆 *Dica:* O bloco acima possui um botão de cópia rápida no canto"
-            " superior direito para copiar todo o roteiro de uma vez só!"
+            "💡 *Dica Mobile:* O campo acima permite selecionar e copiar"
+            " facilmente o texto."
         )
 
         st.markdown("---")
