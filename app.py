@@ -63,7 +63,6 @@ def init_db():
             FOREIGN KEY(produto_id) REFERENCES produtos(id)
         )
     """)
-  # Garante compatibilidade de colunas caso o banco seja antigo
   for col in [
       "redes_alvo",
       "estrategia_ia",
@@ -187,26 +186,70 @@ if menu == "📊 Dashboard & Metas":
   else:
     st.info("Nenhum conteúdo gerado ainda.")
 
-# --- TELA 2: PRODUTOS ---
+# --- TELA 2: PRODUTOS (COM IMPORTAÇÃO INTELIGENTE ESTILO WHATSAPP) ---
 elif menu == "📦 Catálogo de Produtos":
   st.title("📦 Gestão de Produtos & Afiliados")
+  st.markdown(
+      "Cole abaixo o texto bruto compartilhado da Shopee (com o nome e o link"
+      " juntos). A IA limpa tudo e cadastra automaticamente para você!"
+  )
 
-  with st.form("form_produto"):
-    st.subheader("Cadastrar Novo Produto")
-    nome_prod = st.text_input("Nome do Produto")
+  with st.form("form_importacao_produto"):
+    texto_bruto = st.text_area(
+        "Cole o Texto/Link Bruto da Shopee aqui:",
+        placeholder="Ex: Olha que achado incrível https://s.shopee.com.br/... Capa de Almofada BTS...",
+        height=100,
+    )
     nicho_prod = st.selectbox(
         "Nicho", ["Moda Praia", "K-pop / Colecionáveis", "Beleza", "Casa"]
     )
-    link_af = st.text_input("Link de Afiliado (Shopee / TikTok Shop)")
-    submit_prod = st.form_submit_button("Salvar Produto")
+    submit_import = st.form_submit_button(
+        "Importar e Cadastrar Produto com IA 🚀"
+    )
 
-    if submit_prod and nome_prod:
-      run_query(
-          "INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)",
-          (nome_prod, nicho_prod, link_af),
-          fetch=False,
-      )
-      st.success(f"Produto '{nome_prod}' cadastrado com sucesso!")
+    if submit_import and texto_bruto:
+      if not IA_DISPONIVEL:
+        st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
+      else:
+        with st.spinner("A IA está limpando o título e extraindo o link..."):
+          prompt_extracao = f"""
+                    Analise o texto bruto compartilhado de um produto de afiliado abaixo:
+                    "{texto_bruto}"
+                    
+                    Sua tarefa é extrair duas informações e responder estritamente usando estas tags:
+                    [NOME] (Um título limpo, comercial e atraente para o produto)
+                    [LINK] (Apenas a URL do link de afiliado encontrada no texto)
+                    """
+          response = client.models.generate_content(
+              model="gemini-2.5-flash",
+              contents=prompt_extracao,
+          )
+          resultado = response.text
+
+          # Extração das tags
+          nome_extraido, link_extraido = "", ""
+          try:
+            partes = resultado.split("[")
+            for p in partes:
+              if p.startswith("NOME]"):
+                nome_extraido = p.replace("NOME]", "").strip()
+              elif p.startswith("LINK]"):
+                link_extraido = p.replace("LINK]", "").strip()
+          except Exception:
+            nome_extraido = "Produto Importado Shopee"
+
+          if not nome_extraido:
+            nome_extraido = "Produto Importado Shopee"
+
+          # Salva no banco de dados automaticamente
+          run_query(
+              "INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)",
+              (nome_extraido, nicho_prod, link_extraido),
+              fetch=False,
+          )
+          st.success(
+              f"🎉 Produto '{nome_extraido}' importado e cadastrado com sucesso!"
+          )
 
   st.markdown("---")
   st.subheader("Lista de Produtos Cadastrados")
@@ -216,13 +259,12 @@ elif menu == "📦 Catálogo de Produtos":
   else:
     st.info("Nenhum produto cadastrado.")
 
-# --- TELA 3: GERADOR COM IA INTELIGENTE (REGRAS CLARAS DE PLATAFORMA) ---
+# --- TELA 3: GERADOR COM IA INTELIGENTE ---
 elif menu == "🎬 Gerador com IA Inteligente":
   st.title("🎬 Gerador Estratégico de Conteúdo")
   st.markdown(
-      "A IA analisa o produto, define o formato ideal e separa os textos"
-      " perfeitamente por plataforma (sem misturar sacolinha amarela com Shopee"
-      " Vídeos)."
+      "A IA analisa o produto, define automaticamente o melhor formato e monta"
+      " os textos separados por rede."
   )
 
   if not IA_DISPONIVEL:
@@ -314,7 +356,6 @@ elif menu == "🎬 Gerador com IA Inteligente":
           )
           texto_gerado = response.text
 
-          # Fatiamento inteligente dos blocos
           estrategia, texto_video, leg_tiktok, leg_insta, leg_pinterest, leg_shopee, prompt_ia = (
               "",
               "",
@@ -374,7 +415,7 @@ elif menu == "🎬 Gerador com IA Inteligente":
   else:
     st.warning("Cadastre um produto na aba de Catálogo primeiro.")
 
-# --- TELA 4: CENTRAL DE PENDENTES (ABAS LIMPAS POR REDE / FINALIDADE) ---
+# --- TELA 4: CENTRAL DE PENDENTES (ABAS LIMPAS POR REDE) ---
 elif menu == "📋 Central de Pendentes (Kanban)":
   st.title("📋 Central de Pendentes & Redes Sociais")
   st.markdown(
@@ -406,7 +447,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         st.markdown(f"**Estratégia Definida pela IA:** {estrategia_tag}")
         st.markdown("---")
 
-        # Criação de abas organizadas para evitar textos gigantes e misturados
         tab_tik, tab_insta, tab_pin, tab_shopee, tab_video, tab_prompt = (
             st.tabs([
                 "🎵 TikTok",
