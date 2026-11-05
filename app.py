@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="Central Achados do Felipe",
     page_icon="🚀",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",  # Deixa a barra lateral fechada por padrão no mobile
 )
 
 # Estilização CSS (Dark Mode / Moderno e Otimizado para Mobile)
@@ -18,7 +18,6 @@ st.markdown(
     """
     <style>
     .main { background-color: #121212; color: #ffffff; }
-    .stSidebar { background-color: #181818; }
     h1, h2, h3 { color: #1DB954 !important; }
     .card { background-color: #282828; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .metric-card { background-color: #282828; padding: 15px; border-radius: 10px; text-align: center; }
@@ -27,7 +26,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- BANCO DE DADOS LOCAL ---
+# --- BANCO DE DADOS LOCAL & LIMPEZA DE LEGADO ---
 DB_FILE = "achados_felipe.db"
 
 
@@ -64,33 +63,13 @@ def init_db():
             FOREIGN KEY(produto_id) REFERENCES produtos(id)
         )
     """)
-  for col in [
-      "redes_alvo",
-      "estrategia_ia",
-      "tik_titulo_video",
-      "tik_legenda",
-      "insta_titulo_video",
-      "insta_legenda",
-      "pin_titulo",
-      "pin_descricao",
-      "shp_legenda",
-      "prompt_ia",
-  ]:
-    try:
-      cursor.execute(f"ALTER TABLE conteudos ADD COLUMN {col} TEXT")
-    except sqlite3.OperationalError:
-      pass
 
-  for col, tipo in [
-      ("post_tiktok", "INTEGER DEFAULT 0"),
-      ("post_instagram", "INTEGER DEFAULT 0"),
-      ("post_pinterest", "INTEGER DEFAULT 0"),
-      ("post_shopee", "INTEGER DEFAULT 0"),
-  ]:
-    try:
-      cursor.execute(f"ALTER TABLE conteudos ADD COLUMN {col} {tipo}")
-    except sqlite3.OperationalError:
-      pass
+  # Limpa automaticamente produtos órfãos ou legados corrompidos para sumir com o "None"
+  cursor.execute(
+      "DELETE FROM conteudos WHERE produto_id NOT IN (SELECT id FROM"
+      " produtos)"
+  )
+  cursor.execute("DELETE FROM produtos WHERE nome IS NULL OR nome = 'None'")
 
   conn.commit()
   conn.close()
@@ -120,165 +99,38 @@ try:
 except Exception as e:
   IA_DISPONIVEL = False
 
-# --- MENU LATERAL ---
-st.sidebar.title("🚀 Achados do Felipe")
-st.sidebar.markdown("---")
-menu = st.sidebar.selectbox(
-    "Navegação",
+# --- NAVEGAÇÃO SUPERIOR (OTIMIZADA PARA CELULAR - SEM PRECISAR DO MENU LATERAL) ---
+st.title("🚀 Central Achados do Felipe")
+
+menu = st.radio(
+    "Navegação Rápida",
     [
+        "🎬 Gerador Inteligente",
+        "📋 Central de Pendentes",
+        "📦 Catálogo",
         "📊 Dashboard & Metas",
-        "📦 Catálogo de Produtos",
-        "🎬 Gerador com IA Inteligente",
-        "📋 Central de Pendentes (Kanban)",
     ],
+    horizontal=True,
 )
 
-# --- TELA 1: DASHBOARD ---
-if menu == "📊 Dashboard & Metas":
-  st.title("📊 Painel de Controle & Campanhas")
+st.markdown("---")
 
-  df_conteudos = run_query(
-      "SELECT * FROM conteudos WHERE status LIKE '%Concluído%'"
-  )
-  total_publicados = len(df_conteudos)
-  meta_videos = 15
-
-  col1, col2, col3 = st.columns(3)
-  with col1:
-    st.markdown(
-        f'<div class="metric-card"><h3>Conteúdos Concluídos</h3><h2>'
-        f" {total_publicados} / {meta_videos}</h2></div>",
-        unsafe_allow_html=True,
-    )
-  with col2:
-    st.markdown(
-        '<div class="metric-card"><h3>Campanha Ativa</h3><h2>#ViralTikTokShop</h2></div>',
-        unsafe_allow_html=True,
-    )
-  with col3:
-    progresso = (
-        int((total_publicados / meta_videos) * 100)
-        if meta_videos > 0
-        else 0
-    )
-    st.markdown(
-        f'<div class="metric-card"><h3>Progresso Geral</h3><h2>'
-        f" {progresso}%</h2></div>",
-        unsafe_allow_html=True,
-    )
-
-  st.markdown("---")
-  st.subheader("🚀 Últimos Projetos Criados")
-  df_recentes = run_query("""
-        SELECT c.id, p.nome as produto, c.status 
-        FROM conteudos c 
-        LEFT JOIN produtos p ON c.produto_id = p.id 
-        ORDER BY c.id DESC LIMIT 5
-    """)
-  if not df_recentes.empty:
-    for _, row in df_recentes.iterrows():
-      st.markdown(
-          f"""
-            <div class="card">
-                <b>📦 {row['produto']}</b><br>
-                <small>Status: <b>{row['status']}</b></small>
-            </div>
-            """,
-          unsafe_allow_html=True,
-      )
-  else:
-    st.info("Nenhum conteúdo gerado ainda.")
-
-# --- TELA 2: PRODUTOS ---
-elif menu == "📦 Catálogo de Produtos":
-  st.title("📦 Gestão de Produtos & Afiliados")
+# --- TELA 1: GERADOR COM IA INTELIGENTE ---
+if menu == "🎬 Gerador Inteligente":
+  st.markdown("### 🎬 Gerador Estratégico de Conteúdo")
   st.markdown(
-      "Cole o texto bruto da Shopee. A IA limpa o título, extrai o link e"
-      " sugere a categoria ideal automaticamente!"
-  )
-
-  with st.form("form_importacao_produto"):
-    texto_bruto = st.text_input(
-        "Cole o Texto/Link Bruto da Shopee aqui:",
-        placeholder="Ex: Olha que achado incrível https://s.shopee.com.br/... Capa de Almofada BTS...",
-    )
-    submit_import = st.form_submit_button(
-        "Importar e Cadastrar Produto com IA 🚀"
-    )
-
-    if submit_import and texto_bruto:
-      if not IA_DISPONIVEL:
-        st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
-      else:
-        with st.spinner(
-            "A IA está limpando o título, extraindo o link e definindo a"
-            " categoria..."
-        ):
-          prompt_extracao = f"""
-                    Analise o texto bruto compartilhado de um produto de afiliado abaixo:
-                    "{texto_bruto}"
-                    
-                    Sua tarefa é extrair três informações e responder estritamente usando estas tags:
-                    [NOME] (Um título limpo, comercial e atraente para o produto)
-                    [LINK] (Apenas a URL do link de afiliado encontrada no texto)
-                    [CATEGORIA] (Defina uma categoria adequada e específica para este produto, ex: K-pop / Decoração, Moda Praia, Eletrônicos, Cozinha, etc.)
-                    """
-          response = client.models.generate_content(
-              model="gemini-2.5-flash",
-              contents=prompt_extracao,
-          )
-          resultado = response.text
-
-          nome_extraido, link_extraido, nicho_extraido = "", "", "Geral"
-          try:
-            partes = resultado.split("[")
-            for p in partes:
-              if p.startswith("NOME]"):
-                nome_extraido = p.replace("NOME]", "").strip()
-              elif p.startswith("LINK]"):
-                link_extraido = p.replace("LINK]", "").strip()
-              elif p.startswith("CATEGORIA]"):
-                nicho_extraido = p.replace("CATEGORIA]", "").strip()
-          except Exception:
-            nome_extraido = "Produto Importado Shopee"
-
-          if not nome_extraido:
-            nome_extraido = "Produto Importado Shopee"
-
-          run_query(
-              "INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)",
-              (nome_extraido, nicho_extraido, link_extraido),
-              fetch=False,
-          )
-          st.success(
-              f"🎉 Produto '{nome_extraido}' (Categoria: {nicho_extraido})"
-              " importado com sucesso!"
-          )
-
-  st.markdown("---")
-  st.subheader("Lista de Produtos Cadastrados")
-  df_prods = run_query("SELECT * FROM produtos")
-  if not df_prods.empty:
-    st.dataframe(df_prods, width="stretch")
-  else:
-    st.info("Nenhum produto cadastrado.")
-
-# --- TELA 3: GERADOR COM IA INTELIGENTE (FILTRA APENAS PRODUTOS SEM ROTEIRO) ---
-elif menu == "🎬 Gerador com IA Inteligente":
-  st.title("🎬 Gerador Estratégico de Conteúdo")
-  st.markdown(
-      "A IA gera os textos isolados por campo. Os produtos já gerados saem"
-      " automaticamente desta lista."
+      "Selecione um produto cadastrado, escolha as redes e deixe a IA estruturar"
+      " tudo."
   )
 
   if not IA_DISPONIVEL:
     st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
 
-  # Busca apenas os produtos que AINDA NÃO possuem conteúdo gerado na tabela conteudos
+  # Busca apenas produtos que ainda não têm conteúdo gerado
   df_produtos = run_query("""
         SELECT id, nome, nicho, link_afiliado 
         FROM produtos 
-        WHERE id NOT IN (SELECT produto_id FROM conteudos)
+        WHERE id NOT IN (SELECT produto_id FROM conteudos WHERE produto_id IS NOT NULL)
     """)
 
   if not df_produtos.empty:
@@ -290,11 +142,11 @@ elif menu == "🎬 Gerador com IA Inteligente":
     nicho_prod = prod_row["nicho"]
     link_afiliado = (
         prod_row["link_afiliado"]
-        if prod_row["link_afiliado"]
+        if pd.notna(prod_row["link_afiliado"])
         else "Link de afiliado"
     )
 
-    st.markdown("### 🌐 Onde você pretende postar este conteúdo?")
+    st.markdown("**🌐 Onde você pretende postar este conteúdo?**")
     col_r1, col_r2, col_r3, col_r4 = st.columns(4)
     with col_r1:
       sel_tiktok = st.checkbox("TikTok", value=True)
@@ -327,9 +179,7 @@ elif menu == "🎬 Gerador com IA Inteligente":
             "Selecione pelo menos uma rede social para direcionar a IA."
         )
       else:
-        with st.spinner(
-            "A IA está gerando cada campo isolado e estruturado..."
-        ):
+        with st.spinner("A IA está estruturando o pacote por tópicos..."):
           prompt_sistema = f"""
                     Atue como um estrategista sênior especialista em marketing de afiliados para o projeto 'Achados do Felipe'.
                     Analise o produto: '{prod_escolhido}' (Categoria: {nicho_prod}, Link: {link_afiliado}).
@@ -442,8 +292,7 @@ elif menu == "🎬 Gerador com IA Inteligente":
           )
 
           st.success(
-              "🎉 Pacote gerado com sucesso! O produto foi enviado para a"
-              " Central de Pendentes e removido desta lista."
+              "🎉 Pacote gerado com sucesso! Salvo na Central de Pendentes."
           )
           st.rerun()
   else:
@@ -452,12 +301,11 @@ elif menu == "🎬 Gerador com IA Inteligente":
         " Cadastre novos produtos na aba de Catálogo."
     )
 
-# --- TELA 4: CENTRAL DE PENDENTES (CAMPOS ISOLADOS) ---
-elif menu == "📋 Central de Pendentes (Kanban)":
-  st.title("📋 Central de Pendentes & Redes Sociais")
+# --- TELA 2: CENTRAL DE PENDENTES (KANBAN LIMPO) ---
+elif menu == "📋 Central de Pendentes":
+  st.markdown("### 📋 Central de Pendentes & Redes Sociais")
   st.markdown(
-      "Cada informação está em sua própria caixinha isolada para você copiar"
-      " exatamente o que precisa."
+      "Copie os textos isolados por campo e marque as redes onde já postou."
   )
 
   df_kanban = run_query("""
@@ -467,6 +315,7 @@ elif menu == "📋 Central de Pendentes (Kanban)":
                c.pin_titulo, c.pin_descricao, c.shp_legenda, c.prompt_ia 
         FROM conteudos c 
         LEFT JOIN produtos p ON c.produto_id = p.id 
+        WHERE p.nome IS NOT NULL
         ORDER BY c.id DESC
     """)
 
@@ -475,18 +324,10 @@ elif menu == "📋 Central de Pendentes (Kanban)":
       status_icone = (
           "✔️" if "Concluído" in str(row["status"]) else "🟡 Pendente"
       )
-      nome_prod = (
-          row["produto"]
-          if pd.notna(row["produto"]) and row["produto"]
-          else "Produto"
-      )
-      nicho_prod = (
-          row["nicho"] if pd.notna(row["nicho"]) and row["nicho"] else "Geral"
-      )
+      nome_prod = row["produto"] if pd.notna(row["produto"]) else "Produto"
+      nicho_prod = row["nicho"] if pd.notna(row["nicho"]) else "Geral"
       link_prod = (
-          row["link_afiliado"]
-          if pd.notna(row["link_afiliado"]) and row["link_afiliado"]
-          else "Link na bio"
+          row["link_afiliado"] if pd.notna(row["link_afiliado"]) else "Link"
       )
 
       with st.expander(
@@ -505,7 +346,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         )
 
         st.markdown("---")
-
         st.markdown("### 🎵 TikTok")
         st.text_input(
             "Título no Vídeo / Gancho (0-3s)",
@@ -520,7 +360,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         )
 
         st.markdown("---")
-
         st.markdown("### 📸 Instagram / Reels / Carrossel")
         st.text_input(
             "Título no Vídeo / Capa",
@@ -535,7 +374,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         )
 
         st.markdown("---")
-
         st.markdown("### 📌 Pinterest")
         st.text_input(
             "Título do Pin",
@@ -550,7 +388,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         )
 
         st.markdown("---")
-
         st.markdown("### 🛍️ Shopee Vídeos")
         st.text_area(
             "Legenda Shopee Vídeos",
@@ -560,7 +397,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         )
 
         st.markdown("---")
-
         st.markdown("### 🤖 Prompt Técnico para IA")
         st.text_area(
             "Prompt de Mídia (Inglês)",
@@ -624,14 +460,165 @@ elif menu == "📋 Central de Pendentes (Kanban)":
                 (row["id"],),
                 fetch=False,
             )
-            st.success("Conteúdo marcado como concluído!")
+            st.success("Conteúdo concluído!")
             st.rerun()
         with col_btn2:
           if st.button("Excluir Item 🗑️", key=f"excluir_{row['id']}"):
             run_query(
                 "DELETE FROM conteudos WHERE id = ?", (row["id"],), fetch=False
             )
-            st.success("Item removido da central!")
+            st.success("Item removido!")
             st.rerun()
   else:
-    st.info("Nenhum conteúdo cadastrado na central ainda.")
+    st.info("Nenhum conteúdo pendente na central no momento.")
+
+# --- TELA 3: CATÁLOGO DE PRODUTOS (COM OPÇÃO DE EXCLUIR PRODUTOS ANTIGOS) ---
+elif menu == "📦 Catálogo":
+  st.markdown("### 📦 Gestão de Produtos & Afiliados")
+  st.markdown(
+      "Cole o texto bruto da Shopee. A IA limpa o título, extrai o link e"
+      " sugere a categoria ideal!"
+  )
+
+  with st.form("form_importacao_produto"):
+    texto_bruto = st.text_input(
+        "Cole o Texto/Link Bruto da Shopee aqui:",
+        placeholder="Ex: https://s.shopee.com.br/... Capa de Almofada...",
+    )
+    submit_import = st.form_submit_button(
+        "Importar e Cadastrar Produto com IA 🚀"
+    )
+
+    if submit_import and texto_bruto:
+      if not IA_DISPONIVEL:
+        st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
+      else:
+        with st.spinner("A IA está processando o produto..."):
+          prompt_extracao = f"""
+                    Analise o texto bruto compartilhado de um produto de afiliado abaixo:
+                    "{texto_bruto}"
+                    
+                    Sua tarefa é extrair três informações e responder estritamente usando estas tags:
+                    [NOME] (Um título limpo, comercial e atraente para o produto)
+                    [LINK] (Apenas a URL do link de afiliado encontrada no texto)
+                    [CATEGORIA] (Defina uma categoria adequada e específica para este produto)
+                    """
+          response = client.models.generate_content(
+              model="gemini-2.5-flash",
+              contents=prompt_extracao,
+          )
+          resultado = response.text
+
+          nome_extraido, link_extraido, nicho_extraido = "", "", "Geral"
+          try:
+            partes = resultado.split("[")
+            for p in partes:
+              if p.startswith("NOME]"):
+                nome_extraido = p.replace("NOME]", "").strip()
+              elif p.startswith("LINK]"):
+                link_extraido = p.replace("LINK]", "").strip()
+              elif p.startswith("CATEGORIA]"):
+                nicho_extraido = p.replace("CATEGORIA]", "").strip()
+          except Exception:
+            nome_extraido = "Produto Importado Shopee"
+
+          if not nome_extraido:
+            nome_extraido = "Produto Importado Shopee"
+
+          run_query(
+              "INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)",
+              (nome_extraido, nicho_extraido, link_extraido),
+              fetch=False,
+          )
+          st.success(
+              f"🎉 Produto '{nome_extraido}' importado com sucesso!"
+          )
+
+  st.markdown("---")
+  st.markdown("### 📋 Produtos Cadastrados (Gerenciamento)")
+  df_prods = run_query(
+      "SELECT id, nome, nicho, link_afiliado FROM produtos ORDER BY id DESC"
+  )
+
+  if not df_prods.empty:
+    for _, row in df_prods.iterrows():
+      col_p1, col_p2 = st.columns([4, 1])
+      with col_p1:
+        st.markdown(
+            f"**📦 {row['nome']}**<br><small>Categoria: {row['nicho']}</small>",
+            unsafe_allow_html=True,
+        )
+      with col_p2:
+        if st.button("Excluir 🗑️", key=f"del_prod_{row['id']}"):
+          run_query(
+              "DELETE FROM conteudos WHERE produto_id = ?",
+              (row["id"],),
+              fetch=False,
+          )
+          run_query(
+              "DELETE FROM produtos WHERE id = ?", (row["id"],), fetch=False
+          )
+          st.success("Produto excluído do catálogo!")
+          st.rerun()
+      st.markdown("---")
+  else:
+    st.info("Nenhum produto cadastrado.")
+
+# --- TELA 4: DASHBOARD & METAS ---
+elif menu == "📊 Dashboard & Metas":
+  st.markdown("### 📊 Painel de Controle & Campanhas")
+
+  # Conta apenas os itens que foram realmente concluídos
+  df_concluidos = run_query(
+      "SELECT * FROM conteudos WHERE status LIKE '%Concluído%'"
+  )
+  total_concluidos = len(df_concluidos)
+  meta_videos = 15
+
+  col1, col2, col3 = st.columns(3)
+  with col1:
+    st.markdown(
+        f'<div class="metric-card"><h3>Vídeos Concluídos</h3><h2>'
+        f" {total_concluidos} / {meta_videos}</h2></div>",
+        unsafe_allow_html=True,
+    )
+  with col2:
+    st.markdown(
+        '<div class="metric-card"><h3>Campanha Ativa</h3><h2>#ViralTikTokShop</h2></div>',
+        unsafe_allow_html=True,
+    )
+  with col3:
+    progresso = (
+        int((total_concluidos / meta_videos) * 100) if meta_videos > 0 else 0
+    )
+    st.markdown(
+        f'<div class="metric-card"><h3>Progresso Geral</h3><h2>'
+        f" {progresso}%</h2></div>",
+        unsafe_allow_html=True,
+    )
+
+  st.markdown("---")
+  st.markdown("### 🚀 Histórico de Concluídos")
+  if not df_concluidos.empty:
+    df_hist = run_query("""
+            SELECT p.nome as produto, c.redes_alvo, c.status 
+            FROM conteudos c 
+            LEFT JOIN produtos p ON c.produto_id = p.id 
+            WHERE c.status LIKE '%Concluído%'
+            ORDER BY c.id DESC
+        """)
+    for _, row in df_hist.iterrows():
+      st.markdown(
+          f"""
+            <div class="card">
+                <b>📦 {row['produto']}</b> | Redes: {row['redes_alvo']}<br>
+                <small>Status: <b>{row['status']} ✔️</b></small>
+            </div>
+            """,
+          unsafe_allow_html=True,
+      )
+  else:
+    st.info(
+        "Nenhum conteúdo concluído ainda. Conclua os itens na Central de"
+        " Pendentes para preencher seu dashboard!"
+    )
