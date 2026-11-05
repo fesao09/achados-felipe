@@ -62,7 +62,14 @@ def init_db():
         )
     """)
   # Garante compatibilidade de colunas caso o banco seja antigo
-  for col in ["redes_alvo", "estrategia_ia", "ganchos", "prompt_ia", "legendas", "hashtags"]:
+  for col in [
+      "redes_alvo",
+      "estrategia_ia",
+      "ganchos",
+      "prompt_ia",
+      "legendas",
+      "hashtags",
+  ]:
     try:
       cursor.execute(f"ALTER TABLE conteudos ADD COLUMN {col} TEXT")
     except sqlite3.OperationalError:
@@ -205,7 +212,7 @@ elif menu == "📦 Catálogo de Produtos":
   else:
     st.info("Nenhum produto cadastrado.")
 
-# --- TELA 3: GERADOR COM IA INTELIGENTE (ESCOLHA DE REDES + ANÁLISE DE FORMATO) ---
+# --- TELA 3: GERADOR COM IA INTELIGENTE ---
 elif menu == "🎬 Gerador com IA Inteligente":
   st.title("🎬 Gerador Estratégico de Conteúdo")
   st.markdown(
@@ -217,7 +224,9 @@ elif menu == "🎬 Gerador com IA Inteligente":
   if not IA_DISPONIVEL:
     st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
 
-  df_produtos = run_query("SELECT id, nome FROMprodutos")
+  df_produtos = run_query(
+      "SELECT id, nome FROM produtos"
+  )  # Corrigido o espaçamento aqui
   if not df_produtos.empty:
     prod_escolhido = st.selectbox(
         "Selecione o Produto", df_produtos["nome"].tolist()
@@ -237,7 +246,6 @@ elif menu == "🎬 Gerador com IA Inteligente":
     with col_r4:
       sel_shopee = st.checkbox("Shopee Video", value=False)
 
-    # Coleta quais redes foram selecionadas
     redes_escolhidas = []
     if sel_tiktok:
       redes_escolhidas.append("TikTok")
@@ -298,7 +306,6 @@ elif menu == "🎬 Gerador com IA Inteligente":
           )
           texto_gerado = response.text
 
-          # Fatiamento inteligente dos blocos
           estrategia, ganchos, prompt_ia, legendas, hashtags = (
               "",
               "",
@@ -322,7 +329,6 @@ elif menu == "🎬 Gerador com IA Inteligente":
           except Exception:
             ganchos = texto_gerado
 
-          # Salva no banco com a estratégia de formato escolhida pela IA
           run_query(
               """
                     INSERT INTO conteudos (produto_id, titulo, redes_alvo, estrategia_ia, ganchos, prompt_ia, legendas, hashtags, status)
