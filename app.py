@@ -49,10 +49,12 @@ def init_db():
             titulo TEXT,
             redes_alvo TEXT,
             estrategia_ia TEXT,
-            ganchos TEXT,
+            texto_video TEXT,
+            legenda_tiktok TEXT,
+            legenda_insta TEXT,
+            legenda_pinterest TEXT,
+            legenda_shopee TEXT,
             prompt_ia TEXT,
-            legendas TEXT,
-            hashtags TEXT,
             post_tiktok INTEGER DEFAULT 0,
             post_instagram INTEGER DEFAULT 0,
             post_pinterest INTEGER DEFAULT 0,
@@ -65,10 +67,12 @@ def init_db():
   for col in [
       "redes_alvo",
       "estrategia_ia",
-      "ganchos",
+      "texto_video",
+      "legenda_tiktok",
+      "legenda_insta",
+      "legenda_pinterest",
+      "legenda_shopee",
       "prompt_ia",
-      "legendas",
-      "hashtags",
   ]:
     try:
       cursor.execute(f"ALTER TABLE conteudos ADD COLUMN {col} TEXT")
@@ -212,21 +216,19 @@ elif menu == "📦 Catálogo de Produtos":
   else:
     st.info("Nenhum produto cadastrado.")
 
-# --- TELA 3: GERADOR COM IA INTELIGENTE ---
+# --- TELA 3: GERADOR COM IA INTELIGENTE (REGRAS CLARAS DE PLATAFORMA) ---
 elif menu == "🎬 Gerador com IA Inteligente":
   st.title("🎬 Gerador Estratégico de Conteúdo")
   st.markdown(
-      "A IA analisa o produto, define automaticamente o melhor formato (Vídeo"
-      " Dinâmico ou Carrossel) e monta os textos para as redes que você"
-      " escolher."
+      "A IA analisa o produto, define o formato ideal e separa os textos"
+      " perfeitamente por plataforma (sem misturar sacolinha amarela com Shopee"
+      " Vídeos)."
   )
 
   if not IA_DISPONIVEL:
     st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
 
-  df_produtos = run_query(
-      "SELECT id, nome FROM produtos"
-  )  # Corrigido o espaçamento aqui
+  df_produtos = run_query("SELECT id, nome FROM produtos")
   if not df_produtos.empty:
     prod_escolhido = st.selectbox(
         "Selecione o Produto", df_produtos["nome"].tolist()
@@ -269,35 +271,41 @@ elif menu == "🎬 Gerador com IA Inteligente":
         )
       else:
         with st.spinner(
-            "A IA está analisando o produto e decidindo o melhor formato"
-            " (Vídeo ou Carrossel)..."
+            "A IA está estruturando textos separados por rede e formato..."
         ):
           prompt_sistema = f"""
                     Atue como um estrategista sênior especialista em marketing de afiliados para o projeto 'Achados do Felipe'.
                     Analise o produto: '{prod_escolhido}'.
                     As redes de destino escolhidas pelo usuário são: '{redes_str}'.
                     
-                    Sua tarefa:
-                    1. Decida estrategicamente se este produto performa melhor com um [Vídeo Dinâmico], [Vídeo Simples] ou [Carrossel / Imagem Estática] com base nas características dele e nas redes de destino.
-                    2. Escreva uma breve [ESTRATEGIA] explicando por que escolheu esse formato.
-                    3. Gere o conteúdo em português 100% natural do Brasil.
+                    REGRAS IMPORTANTES DE PLATAFORMA (NUNCA MISTURE):
+                    - TikTok: CTA exclusivo mencionando a 'sacolinha amarela' ou link do TikTok Shop.
+                    - Instagram: CTA mencionando 'link na bio' ou 'direct'. NUNCA fale em sacolinha amarela.
+                    - Pinterest: Título forte e descrição rica para busca visual com chamada para clicar na imagem e ir para a Shopee/Afiliado.
+                    - Shopee Vídeos: CTA mencionando o 'link na vitrine da Shopee'. NUNCA fale em sacolinha amarela do TikTok.
                     
                     Responda estritamente usando estas tags exatas para separação:
                     
                     [ESTRATEGIA]
-                    (Explique em 1 frase curta o formato ideal escolhido pela IA para este produto)
+                    (Explique em 1 frase curta o formato ideal escolhido pela IA para este produto: Vídeo Dinâmico ou Carrossel)
                     
-                    [GANCHOS]
-                    (Insira opções de ganchos fortes adaptados para as redes escolhidas)
+                    [TEXTO_VIDEO]
+                    (Frases curtas e ganchos para colocar na tela do vídeo ou nas imagens do carrossel)
+                    
+                    [LEGENDA_TIKTOK]
+                    (Legenda otimizada para TikTok citando a sacolinha amarela e hashtags)
+                    
+                    [LEGENDA_INSTA]
+                    (Legenda otimizada para Instagram citando link na bio e hashtags)
+                    
+                    [LEGENDA_PINTEREST]
+                    (Título e Descrição rica em SEO para o Pinterest)
+                    
+                    [LEGENDA_SHOPEE]
+                    (Legenda otimizada para Shopee Vídeos citando o link da vitrine)
                     
                     [PROMPT_IA]
-                    (Insira o prompt técnico em inglês otimizado para gerar a mídia ideal - seja vídeo ou carrossel)
-                    
-                    [LEGENDAS]
-                    (Insira legendas e descrições otimizadas para as redes de destino selecionadas)
-                    
-                    [HASHTAGS]
-                    (Insira hashtags estratégicas e CTA para a sacolinha amarela)
+                    (Prompt técnico em inglês otimizado para gerar a mídia ideal - vídeo ou carrossel)
                     """
 
           response = client.models.generate_content(
@@ -306,7 +314,10 @@ elif menu == "🎬 Gerador com IA Inteligente":
           )
           texto_gerado = response.text
 
-          estrategia, ganchos, prompt_ia, legendas, hashtags = (
+          # Fatiamento inteligente dos blocos
+          estrategia, texto_video, leg_tiktok, leg_insta, leg_pinterest, leg_shopee, prompt_ia = (
+              "",
+              "",
               "",
               "",
               "",
@@ -318,21 +329,25 @@ elif menu == "🎬 Gerador com IA Inteligente":
             for p in partes:
               if p.startswith("ESTRATEGIA]"):
                 estrategia = p.replace("ESTRATEGIA]", "").strip()
-              elif p.startswith("GANCHOS]"):
-                ganchos = p.replace("GANCHOS]", "").strip()
+              elif p.startswith("TEXTO_VIDEO]"):
+                texto_video = p.replace("TEXTO_VIDEO]", "").strip()
+              elif p.startswith("LEGENDA_TIKTOK]"):
+                leg_tiktok = p.replace("LEGENDA_TIKTOK]", "").strip()
+              elif p.startswith("LEGENDA_INSTA]"):
+                leg_insta = p.replace("LEGENDA_INSTA]", "").strip()
+              elif p.startswith("LEGENDA_PINTEREST]"):
+                leg_pinterest = p.replace("LEGENDA_PINTEREST]", "").strip()
+              elif p.startswith("LEGENDA_SHOPEE]"):
+                leg_shopee = p.replace("LEGENDA_SHOPEE]", "").strip()
               elif p.startswith("PROMPT_IA]"):
                 prompt_ia = p.replace("PROMPT_IA]", "").strip()
-              elif p.startswith("LEGENDAS]"):
-                legendas = p.replace("LEGENDAS]", "").strip()
-              elif p.startswith("HASHTAGS]"):
-                hashtags = p.replace("HASHTAGS]", "").strip()
           except Exception:
-            ganchos = texto_gerado
+            texto_video = texto_gerado
 
           run_query(
               """
-                    INSERT INTO conteudos (produto_id, titulo, redes_alvo, estrategia_ia, ganchos, prompt_ia, legendas, hashtags, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendente 🟡')
+                    INSERT INTO conteudos (produto_id, titulo, redes_alvo, estrategia_ia, texto_video, legenda_tiktok, legenda_insta, legenda_pinterest, legenda_shopee, prompt_ia, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendente 🟡')
                 """,
               (
                   prod_id,
@@ -341,34 +356,36 @@ elif menu == "🎬 Gerador com IA Inteligente":
                   estrategia
                   if estrategia
                   else "Formato Otimizado por IA (Vídeo/Carrossel)",
-                  ganchos,
+                  texto_video,
+                  leg_tiktok,
+                  leg_insta,
+                  leg_pinterest,
+                  leg_shopee,
                   prompt_ia,
-                  legendas,
-                  hashtags,
               ),
               fetch=False,
           )
 
           st.success(
-              "🎉 Análise concluída! O pacote estratégico foi salvo na Central"
-              " de Pendentes."
+              "🎉 Análise concluída! O pacote estratégico separado por abas foi"
+              " salvo na Central."
           )
           st.markdown(texto_gerado)
   else:
     st.warning("Cadastre um produto na aba de Catálogo primeiro.")
 
-# --- TELA 4: CENTRAL DE PENDENTES (KANBAN) ---
+# --- TELA 4: CENTRAL DE PENDENTES (ABAS LIMPAS POR REDE / FINALIDADE) ---
 elif menu == "📋 Central de Pendentes (Kanban)":
   st.title("📋 Central de Pendentes & Redes Sociais")
   st.markdown(
-      "Acompanhe o formato escolhido pela IA, copie os blocos separadamente e"
-      " marque as postagens."
+      "Abra o card e utilize as abas dedicadas para copiar cada texto na rede"
+      " correta."
   )
 
   df_kanban = run_query("""
         SELECT c.id, p.nome as produto, c.titulo, c.redes_alvo, c.estrategia_ia, c.status, 
                c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee, 
-               c.ganchos, c.prompt_ia, c.legendas, c.hashtags 
+               c.texto_video, c.legenda_tiktok, c.legenda_insta, c.legenda_pinterest, c.legenda_shopee, c.prompt_ia 
         FROM conteudos c 
         LEFT JOIN produtos p ON c.produto_id = p.id 
         ORDER BY c.id DESC
@@ -389,26 +406,69 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         st.markdown(f"**Estratégia Definida pela IA:** {estrategia_tag}")
         st.markdown("---")
 
-        g = (
-            row["ganchos"]
-            if row["ganchos"]
-            else "Conteúdo salvo no formato legado."
+        # Criação de abas organizadas para evitar textos gigantes e misturados
+        tab_tik, tab_insta, tab_pin, tab_shopee, tab_video, tab_prompt = (
+            st.tabs([
+                "🎵 TikTok",
+                "📸 Instagram",
+                "📌 Pinterest",
+                "🛍️ Shopee",
+                "🎬 Textos no Vídeo",
+                "🤖 Prompt IA",
+            ])
         )
-        p = row["prompt_ia"] if row["prompt_ia"] else "N/A"
-        l = row["legendas"] if row["legendas"] else "N/A"
-        h = row["hashtags"] if row["hashtags"] else "N/A"
 
-        st.markdown("### 🎯 1. Ganchos e Títulos")
-        st.code(g, language="markdown")
+        with tab_tik:
+          st.markdown("### 🎵 Texto e Legenda para o TikTok")
+          st.code(
+              row["legenda_tiktok"]
+              if row["legenda_tiktok"]
+              else "N/A para esta campanha.",
+              language="markdown",
+          )
 
-        st.markdown("### 🎬 2. Prompt Estratégico (Vídeo / Carrossel)")
-        st.code(p, language="markdown")
+        with tab_insta:
+          st.markdown("### 📸 Legenda para o Instagram / Reels")
+          st.code(
+              row["legenda_insta"]
+              if row["legenda_insta"]
+              else "N/A para esta campanha.",
+              language="markdown",
+          )
 
-        st.markdown("### 📱 3. Textos e Legendas")
-        st.code(l, language="markdown")
+        with tab_pin:
+          st.markdown("### 📌 Título e Descrição para o Pinterest")
+          st.code(
+              row["legenda_pinterest"]
+              if row["legenda_pinterest"]
+              else "N/A para esta campanha.",
+              language="markdown",
+          )
 
-        st.markdown("### #️⃣ 4. Hashtags e CTA")
-        st.code(h, language="markdown")
+        with tab_shopee:
+          st.markdown("### 🛍️ Legenda para o Shopee Vídeos")
+          st.code(
+              row["legenda_shopee"]
+              if row["legenda_shopee"]
+              else "N/A para esta campanha.",
+              language="markdown",
+          )
+
+        with tab_video:
+          st.markdown("### 🎬 Frases para colocar em cima do Vídeo / Capas")
+          st.code(
+              row["texto_video"]
+              if row["texto_video"]
+              else "N/A para esta campanha.",
+              language="markdown",
+          )
+
+        with tab_prompt:
+          st.markdown("### 🤖 Prompt Técnico em Inglês para IA")
+          st.code(
+              row["prompt_ia"] if row["prompt_ia"] else "N/A para esta campanha.",
+              language="markdown",
+          )
 
         st.markdown("---")
         st.markdown("**Checklist de Postagem por Rede:**")
