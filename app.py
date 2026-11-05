@@ -48,25 +48,14 @@ def init_db():
             produto_id INTEGER,
             redes_alvo TEXT,
             estrategia_ia TEXT,
-            
-            -- TIKTOK SEPARADO --
             tik_titulo_video TEXT,
             tik_legenda TEXT,
-            
-            -- INSTAGRAM SEPARADO --
             insta_titulo_video TEXT,
             insta_legenda TEXT,
-            
-            -- PINTEREST SEPARADO --
             pin_titulo TEXT,
             pin_descricao TEXT,
-            
-            -- SHOPEE VIDEO SEPARADO --
             shp_legenda TEXT,
-            
-            -- PROMPT IA --
             prompt_ia TEXT,
-            
             post_tiktok INTEGER DEFAULT 0,
             post_instagram INTEGER DEFAULT 0,
             post_pinterest INTEGER DEFAULT 0,
@@ -75,7 +64,6 @@ def init_db():
             FOREIGN KEY(produto_id) REFERENCES produtos(id)
         )
     """)
-  # Garante compatibilidade de colunas caso o banco seja antigo
   for col in [
       "redes_alvo",
       "estrategia_ia",
@@ -201,7 +189,7 @@ if menu == "📊 Dashboard & Metas":
   else:
     st.info("Nenhum conteúdo gerado ainda.")
 
-# --- TELA 2: PRODUTOS (IMPORTAÇÃO COM SUGESTÃO DE CATEGORIA PELA IA) ---
+# --- TELA 2: PRODUTOS ---
 elif menu == "📦 Catálogo de Produtos":
   st.title("📦 Gestão de Produtos & Afiliados")
   st.markdown(
@@ -275,18 +263,24 @@ elif menu == "📦 Catálogo de Produtos":
   else:
     st.info("Nenhum produto cadastrado.")
 
-# --- TELA 3: GERADOR COM IA INTELIGENTE (CAMPOS SEPARADOS) ---
+# --- TELA 3: GERADOR COM IA INTELIGENTE (FILTRA APENAS PRODUTOS SEM ROTEIRO) ---
 elif menu == "🎬 Gerador com IA Inteligente":
   st.title("🎬 Gerador Estratégico de Conteúdo")
   st.markdown(
-      "A IA gera os textos perfeitamente isolados por campo para facilitar a"
-      " cópia."
+      "A IA gera os textos isolados por campo. Os produtos já gerados saem"
+      " automaticamente desta lista."
   )
 
   if not IA_DISPONIVEL:
     st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
 
-  df_produtos = run_query("SELECT id, nome, nicho, link_afiliado FROM produtos")
+  # Busca apenas os produtos que AINDA NÃO possuem conteúdo gerado na tabela conteudos
+  df_produtos = run_query("""
+        SELECT id, nome, nicho, link_afiliado 
+        FROM produtos 
+        WHERE id NOT IN (SELECT produto_id FROM conteudos)
+    """)
+
   if not df_produtos.empty:
     prod_escolhido = st.selectbox(
         "Selecione o Produto", df_produtos["nome"].tolist()
@@ -448,13 +442,17 @@ elif menu == "🎬 Gerador com IA Inteligente":
           )
 
           st.success(
-              "🎉 Pacote gerado com campos 100% separados e salvo na Central!"
+              "🎉 Pacote gerado com sucesso! O produto foi enviado para a"
+              " Central de Pendentes e removido desta lista."
           )
-          st.markdown(texto_gerado)
+          st.rerun()
   else:
-    st.warning("Cadastre um produto na aba de Catálogo primeiro.")
+    st.info(
+        "🎉 Todos os produtos cadastrados já tiveram seus roteiros gerados!"
+        " Cadastre novos produtos na aba de Catálogo."
+    )
 
-# --- TELA 4: CENTRAL DE PENDENTES (CAMPOS ISOLADOS COM BOTÕES DE CÓPIA) ---
+# --- TELA 4: CENTRAL DE PENDENTES (CAMPOS ISOLADOS) ---
 elif menu == "📋 Central de Pendentes (Kanban)":
   st.title("📋 Central de Pendentes & Redes Sociais")
   st.markdown(
@@ -497,9 +495,7 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         st.markdown(f"🤖 **Formato Ideal:** {row['estrategia_ia']}")
         st.markdown("---")
 
-        # 1. INFORMAÇÕES GERAIS ISOLADAS
         st.markdown("### 📌 Informações do Produto")
-
         st.text_input(
             "Título do Produto", value=nome_prod, key=f"t_prod_{row['id']}"
         )
@@ -510,7 +506,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
 
         st.markdown("---")
 
-        # 2. TIKTOK ISOLADO
         st.markdown("### 🎵 TikTok")
         st.text_input(
             "Título no Vídeo / Gancho (0-3s)",
@@ -526,7 +521,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
 
         st.markdown("---")
 
-        # 3. INSTAGRAM ISOLADO
         st.markdown("### 📸 Instagram / Reels / Carrossel")
         st.text_input(
             "Título no Vídeo / Capa",
@@ -542,7 +536,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
 
         st.markdown("---")
 
-        # 4. PINTEREST ISOLADO
         st.markdown("### 📌 Pinterest")
         st.text_input(
             "Título do Pin",
@@ -558,7 +551,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
 
         st.markdown("---")
 
-        # 5. SHOPEE VÍDEOS ISOLADO
         st.markdown("### 🛍️ Shopee Vídeos")
         st.text_area(
             "Legenda Shopee Vídeos",
@@ -569,7 +561,6 @@ elif menu == "📋 Central de Pendentes (Kanban)":
 
         st.markdown("---")
 
-        # 6. PROMPT IA ISOLADO
         st.markdown("### 🤖 Prompt Técnico para IA")
         st.text_area(
             "Prompt de Mídia (Inglês)",
@@ -638,7 +629,7 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         with col_btn2:
           if st.button("Excluir Item 🗑️", key=f"excluir_{row['id']}"):
             run_query(
-                "DELETE FROM conteudos WHERE id = ?", (row["id"],), fetch=False,
+                "DELETE FROM conteudos WHERE id = ?", (row["id"],), fetch=False
             )
             st.success("Item removido da central!")
             st.rerun()
