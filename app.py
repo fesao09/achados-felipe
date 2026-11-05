@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="Central Achados do Felipe",
     page_icon="🚀",
     layout="wide",
-    initial_sidebar_state="collapsed",  # Deixa a barra lateral fechada por padrão no mobile
+    initial_sidebar_state="collapsed",
 )
 
 # Estilização CSS (Dark Mode / Moderno e Otimizado para Mobile)
@@ -64,7 +64,6 @@ def init_db():
         )
     """)
 
-  # Limpa automaticamente produtos órfãos ou legados corrompidos para sumir com o "None"
   cursor.execute(
       "DELETE FROM conteudos WHERE produto_id NOT IN (SELECT id FROM"
       " produtos)"
@@ -99,7 +98,7 @@ try:
 except Exception as e:
   IA_DISPONIVEL = False
 
-# --- NAVEGAÇÃO SUPERIOR (OTIMIZADA PARA CELULAR - SEM PRECISAR DO MENU LATERAL) ---
+# --- NAVEGAÇÃO SUPERIOR (OTIMIZADA PARA CELULAR) ---
 st.title("🚀 Central Achados do Felipe")
 
 menu = st.radio(
@@ -119,14 +118,14 @@ st.markdown("---")
 if menu == "🎬 Gerador Inteligente":
   st.markdown("### 🎬 Gerador Estratégico de Conteúdo")
   st.markdown(
-      "Selecione um produto cadastrado, escolha as redes e deixe a IA estruturar"
-      " tudo."
+      "A IA aplica rigorosamente as regras de cada rede (TikTok com sacolinha,"
+      " Shopee Vídeos com limite de 150 caracteres e Pinterest focado em SEO de"
+      " busca)."
   )
 
   if not IA_DISPONIVEL:
     st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
 
-  # Busca apenas produtos que ainda não têm conteúdo gerado
   df_produtos = run_query("""
         SELECT id, nome, nicho, link_afiliado 
         FROM produtos 
@@ -173,25 +172,25 @@ if menu == "🎬 Gerador Inteligente":
         else "TikTok e Instagram"
     )
 
-    if st.button("Gerar Pacote Separado com IA 🚀") and IA_DISPONIVEL:
+    if st.button("Gerar Pacote Estratégico com IA 🚀") and IA_DISPONIVEL:
       if not redes_escolhidas:
         st.warning(
             "Selecione pelo menos uma rede social para direcionar a IA."
         )
       else:
-        with st.spinner("A IA está estruturando o pacote por tópicos..."):
+        with st.spinner("A IA está estruturando o pacote com as regras finas..."):
           prompt_sistema = f"""
                     Atue como um estrategista sênior especialista em marketing de afiliados para o projeto 'Achados do Felipe'.
                     Analise o produto: '{prod_escolhido}' (Categoria: {nicho_prod}, Link: {link_afiliado}).
                     As redes de destino escolhidas são: '{redes_str}'.
                     
-                    REGRAS DE PLATAFORMA:
-                    - TikTok: Gancho forte de 0-3s e CTA para a sacolinha amarela.
-                    - Instagram: Título para capa/reels e legenda com CTA para link na bio ou direct. NUNCA fale em sacolinha amarela.
-                    - Pinterest: Título forte para o Pin e descrição rica em SEO voltada para busca visual.
-                    - Shopee Vídeos: Legenda com CTA para o link da vitrine da Shopee. NUNCA fale em sacolinha amarela.
+                    REGRAS RIGOROSAS DE PLATAFORMA (OBRIGATÓRIO SEGUIR):
+                    1. TIKTOK: Foco em vídeo dinâmico, ganchos fortes de 0-3s e CTA obrigatório para a 'sacolinha amarela'.
+                    2. INSTAGRAM: Título para capa/reels e legenda com CTA para 'link na bio' ou 'direct'. PROIBIDO falar em sacolinha amarela.
+                    3. PINTEREST: O título deve ser focado estritamente em PALAVRAS-CHAVE DE BUSCA (SEO para intenção de pesquisa do usuário, ex: 'Decoração Quarto Kpop Estética Cozy'). A descrição deve ser rica, detalhada e engajadora com até 800 caracteres voltada para descoberta visual.
+                    4. SHOPEE VÍDEOS: A legenda deve ser ULTRA CURTA, tendo no MÁXIMO 150 CARACTERES (já contando com as hashtags e o espaço), com CTA para o link da vitrine/comentários. PROIBIDO falar em sacolinha amarela.
                     
-                    Responda estritamente utilizando estas tags exatas para que cada campo fique totalmente isolado:
+                    Responda estritamente utilizando estas tags exatas para separação:
                     
                     [ESTRATEGIA]
                     (Explique em 1 frase curta o formato ideal: Vídeo Dinâmico ou Carrossel)
@@ -209,13 +208,13 @@ if menu == "🎬 Gerador Inteligente":
                     (Legenda otimizada para o Instagram com link na bio e hashtags)
                     
                     [PIN_TITULO]
-                    (Título otimizado para o Pin do Pinterest)
+                    (Título SEO altamente voltado para palavras-chave de busca no Pinterest)
                     
                     [PIN_DESCRICAO]
-                    (Descrição rica em SEO para o Pinterest)
+                    (Descrição rica em SEO e detalhada com até 800 caracteres para o Pinterest)
                     
                     [SHP_LEGENDA]
-                    (Legenda otimizada para Shopee Vídeos)
+                    (Legenda EXTREMAMENTE CURTA para Shopee Vídeos: máximo de 150 caracteres incluindo hashtags, citando link da vitrine)
                     
                     [PROMPT_IA]
                     (Prompt técnico em inglês limpo e direto com até 900 caracteres para gerar a mídia)
@@ -292,7 +291,8 @@ if menu == "🎬 Gerador Inteligente":
           )
 
           st.success(
-              "🎉 Pacote gerado com sucesso! Salvo na Central de Pendentes."
+              "🎉 Pacote gerado com as regras ajustadas! Salvo na Central de"
+              " Pendentes."
           )
           st.rerun()
   else:
@@ -353,7 +353,7 @@ elif menu == "📋 Central de Pendentes":
             key=f"tik_tit_{row['id']}",
         )
         st.text_area(
-            "Legenda TikTok",
+            "Legenda TikTok (com sacolinha amarela)",
             value=row["tik_legenda"] or "",
             height=80,
             key=f"tik_leg_{row['id']}",
@@ -367,32 +367,32 @@ elif menu == "📋 Central de Pendentes":
             key=f"insta_tit_{row['id']}",
         )
         st.text_area(
-            "Legenda Instagram",
+            "Legenda Instagram (link na bio)",
             value=row["insta_legenda"] or "",
             height=80,
             key=f"insta_leg_{row['id']}",
         )
 
         st.markdown("---")
-        st.markdown("### 📌 Pinterest")
+        st.markdown("### 📌 Pinterest (Focado em SEO de Busca)")
         st.text_input(
-            "Título do Pin",
+            "Título SEO para Busca (Palavras-chave)",
             value=row["pin_titulo"] or "",
             key=f"pin_tit_{row['id']}",
         )
         st.text_area(
-            "Descrição SEO Pinterest",
+            "Descrição SEO Pinterest (Até 800 caracteres)",
             value=row["pin_descricao"] or "",
-            height=80,
+            height=90,
             key=f"pin_desc_{row['id']}",
         )
 
         st.markdown("---")
-        st.markdown("### 🛍️ Shopee Vídeos")
+        st.markdown("### 🛍️ Shopee Vídeos (Máx. 150 caracteres)")
         st.text_area(
-            "Legenda Shopee Vídeos",
+            "Legenda Curta Shopee Vídeos",
             value=row["shp_legenda"] or "",
-            height=80,
+            height=70,
             key=f"shp_leg_{row['id']}",
         )
 
@@ -472,7 +472,7 @@ elif menu == "📋 Central de Pendentes":
   else:
     st.info("Nenhum conteúdo pendente na central no momento.")
 
-# --- TELA 3: CATÁLOGO DE PRODUTOS (COM OPÇÃO DE EXCLUIR PRODUTOS ANTIGOS) ---
+# --- TELA 3: CATÁLOGO DE PRODUTOS ---
 elif menu == "📦 Catálogo":
   st.markdown("### 📦 Gestão de Produtos & Afiliados")
   st.markdown(
@@ -568,7 +568,6 @@ elif menu == "📦 Catálogo":
 elif menu == "📊 Dashboard & Metas":
   st.markdown("### 📊 Painel de Controle & Campanhas")
 
-  # Conta apenas os itens que foram realmente concluídos
   df_concluidos = run_query(
       "SELECT * FROM conteudos WHERE status LIKE '%Concluído%'"
   )
