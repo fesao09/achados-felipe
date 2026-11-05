@@ -47,8 +47,12 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             produto_id INTEGER,
             titulo TEXT,
-            tipo_midia TEXT,
-            pacote_completo TEXT,
+            redes_alvo TEXT,
+            estrategia_ia TEXT,
+            ganchos TEXT,
+            prompt_ia TEXT,
+            legendas TEXT,
+            hashtags TEXT,
             post_tiktok INTEGER DEFAULT 0,
             post_instagram INTEGER DEFAULT 0,
             post_pinterest INTEGER DEFAULT 0,
@@ -57,6 +61,13 @@ def init_db():
             FOREIGN KEY(produto_id) REFERENCES produtos(id)
         )
     """)
+  # Garante compatibilidade de colunas caso o banco seja antigo
+  for col in ["redes_alvo", "estrategia_ia", "ganchos", "prompt_ia", "legendas", "hashtags"]:
+    try:
+      cursor.execute(f"ALTER TABLE conteudos ADD COLUMN {col} TEXT")
+    except sqlite3.OperationalError:
+      pass
+
   for col, tipo in [
       ("post_tiktok", "INTEGER DEFAULT 0"),
       ("post_instagram", "INTEGER DEFAULT 0"),
@@ -104,7 +115,7 @@ menu = st.sidebar.selectbox(
     [
         "📊 Dashboard & Metas",
         "📦 Catálogo de Produtos",
-        "🎬 Gerador com IA do Gemini",
+        "🎬 Gerador com IA Inteligente",
         "📋 Central de Pendentes (Kanban)",
     ],
 )
@@ -122,7 +133,7 @@ if menu == "📊 Dashboard & Metas":
   col1, col2, col3 = st.columns(3)
   with col1:
     st.markdown(
-        f'<div class="metric-card"><h3>Vídeos Concluídos</h3><h2>'
+        f'<div class="metric-card"><h3>Conteúdos Concluídos</h3><h2>'
         f" {total_publicados} / {meta_videos}</h2></div>",
         unsafe_allow_html=True,
     )
@@ -194,18 +205,19 @@ elif menu == "📦 Catálogo de Produtos":
   else:
     st.info("Nenhum produto cadastrado.")
 
-# --- TELA 3: GERADOR COM IA DO GEMINI ---
-elif menu == "🎬 Gerador com IA do Gemini":
-  st.title("🎬 Gerador de Pacote Inteligente (Powered by Gemini)")
+# --- TELA 3: GERADOR COM IA INTELIGENTE (ESCOLHA DE REDES + ANÁLISE DE FORMATO) ---
+elif menu == "🎬 Gerador com IA Inteligente":
+  st.title("🎬 Gerador Estratégico de Conteúdo")
   st.markdown(
-      "A IA lê o produto cadastrado, gera o roteiro e **salva automaticamente**"
-      " na sua Central de Pendentes."
+      "A IA analisa o produto, define automaticamente o melhor formato (Vídeo"
+      " Dinâmico ou Carrossel) e monta os textos para as redes que você"
+      " escolher."
   )
 
   if not IA_DISPONIVEL:
     st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
 
-  df_produtos = run_query("SELECT id, nome FROM produtos")
+  df_produtos = run_query("SELECT id, nome FROMprodutos")
   if not df_produtos.empty:
     prod_escolhido = st.selectbox(
         "Selecione o Produto", df_produtos["nome"].tolist()
@@ -214,97 +226,143 @@ elif menu == "🎬 Gerador com IA do Gemini":
         df_produtos["nome"] == prod_escolhido, "id"
     ].values[0]
 
-    formato_midia = st.selectbox(
-        "Formato Principal",
-        [
-            "Vídeo Dinâmico (Ideal para TikTok / Reels)",
-            "Carrossel / Imagem Estática (Ideal para Pinterest / Instagram)",
-        ],
+    st.markdown("### 🌐 Onde você pretende postar este conteúdo?")
+    col_r1, col_r2, col_r3, col_r4 = st.columns(4)
+    with col_r1:
+      sel_tiktok = st.checkbox("TikTok", value=True)
+    with col_r2:
+      sel_insta = st.checkbox("Instagram", value=True)
+    with col_r3:
+      sel_pinterest = st.checkbox("Pinterest", value=True)
+    with col_r4:
+      sel_shopee = st.checkbox("Shopee Video", value=False)
+
+    # Coleta quais redes foram selecionadas
+    redes_escolhidas = []
+    if sel_tiktok:
+      redes_escolhidas.append("TikTok")
+    if sel_insta:
+      redes_escolhidas.append("Instagram")
+    if sel_pinterest:
+      redes_escolhidas.append("Pinterest")
+    if sel_shopee:
+      redes_escolhidas.append("Shopee Video")
+
+    redes_str = (
+        ", ".join(redes_escolhidas)
+        if redes_escolhidas
+        else "TikTok e Instagram"
     )
 
-    if st.button("Gerar e Salvar Pacote com IA 🚀") and IA_DISPONIVEL:
-      with st.spinner(
-          "A Inteligência Artificial está estruturando e salvando seu"
-          " pacote..."
-      ):
-        prompt_sistema = f"""
-                Atue como um estrategista especialista em marketing de afiliados para o projeto 'Achados do Felipe'.
-                Gere um pacote completo de conteúdo em português 100% natural do Brasil para o produto: '{prod_escolhido}'.
-                O formato escolhido é: '{formato_midia}'.
-                
-                Estruture a resposta exatamente com os seguintes tópicos em Markdown, usando exatamente estes cabeçalhos:
-                ### 🎯 1. GANCHOS E TÍTULOS (0 a 3 segundos)
-                (Insira as opções de ganchos aqui)
-                
-                ### 🎬 2. ROTEIRO & PROMPT DE CRIAÇÃO
-                (Insira o prompt e dicas de direção aqui)
-                
-                ### 📱 3. TEXTOS E LEGENDAS POR REDE SOCIAL
-                (Insira as legendas e descrições aqui)
-                
-                ### #️⃣ 4. HASHTAGS E INSIGHTS
-                (Insira as hashtags e CTA aqui)
-                """
-
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt_sistema,
+    if st.button("Analisar Produto e Gerar Pacote com IA 🚀") and IA_DISPONIVEL:
+      if not redes_escolhidas:
+        st.warning(
+            "Selecione pelo menos uma rede social para direcionar a IA."
         )
-        pacote_gerado = response.text
+      else:
+        with st.spinner(
+            "A IA está analisando o produto e decidindo o melhor formato"
+            " (Vídeo ou Carrossel)..."
+        ):
+          prompt_sistema = f"""
+                    Atue como um estrategista sênior especialista em marketing de afiliados para o projeto 'Achados do Felipe'.
+                    Analise o produto: '{prod_escolhido}'.
+                    As redes de destino escolhidas pelo usuário são: '{redes_str}'.
+                    
+                    Sua tarefa:
+                    1. Decida estrategicamente se este produto performa melhor com um [Vídeo Dinâmico], [Vídeo Simples] ou [Carrossel / Imagem Estática] com base nas características dele e nas redes de destino.
+                    2. Escreva uma breve [ESTRATEGIA] explicando por que escolheu esse formato.
+                    3. Gere o conteúdo em português 100% natural do Brasil.
+                    
+                    Responda estritamente usando estas tags exatas para separação:
+                    
+                    [ESTRATEGIA]
+                    (Explique em 1 frase curta o formato ideal escolhido pela IA para este produto)
+                    
+                    [GANCHOS]
+                    (Insira opções de ganchos fortes adaptados para as redes escolhidas)
+                    
+                    [PROMPT_IA]
+                    (Insira o prompt técnico em inglês otimizado para gerar a mídia ideal - seja vídeo ou carrossel)
+                    
+                    [LEGENDAS]
+                    (Insira legendas e descrições otimizadas para as redes de destino selecionadas)
+                    
+                    [HASHTAGS]
+                    (Insira hashtags estratégicas e CTA para a sacolinha amarela)
+                    """
 
-        run_query(
-            """
-                INSERT INTO conteudos (produto_id, titulo, tipo_midia, pacote_completo, status)
-                VALUES (?, ?, ?, ?, 'Pendente 🟡')
-            """,
-            (prod_id, f"Campanha: {prod_escolhido}", formato_midia, pacote_gerado),
-            fetch=False,
-        )
+          response = client.models.generate_content(
+              model="gemini-2.5-flash",
+              contents=prompt_sistema,
+          )
+          texto_gerado = response.text
 
-        st.success(
-            "🎉 Pacote gerado e salvo automaticamente na Central de Pendentes!"
-        )
-        st.markdown(pacote_gerado)
+          # Fatiamento inteligente dos blocos
+          estrategia, ganchos, prompt_ia, legendas, hashtags = (
+              "",
+              "",
+              "",
+              "",
+              "",
+          )
+          try:
+            partes = texto_gerado.split("[")
+            for p in partes:
+              if p.startswith("ESTRATEGIA]"):
+                estrategia = p.replace("ESTRATEGIA]", "").strip()
+              elif p.startswith("GANCHOS]"):
+                ganchos = p.replace("GANCHOS]", "").strip()
+              elif p.startswith("PROMPT_IA]"):
+                prompt_ia = p.replace("PROMPT_IA]", "").strip()
+              elif p.startswith("LEGENDAS]"):
+                legendas = p.replace("LEGENDAS]", "").strip()
+              elif p.startswith("HASHTAGS]"):
+                hashtags = p.replace("HASHTAGS]", "").strip()
+          except Exception:
+            ganchos = texto_gerado
+
+          # Salva no banco com a estratégia de formato escolhida pela IA
+          run_query(
+              """
+                    INSERT INTO conteudos (produto_id, titulo, redes_alvo, estrategia_ia, ganchos, prompt_ia, legendas, hashtags, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendente 🟡')
+                """,
+              (
+                  prod_id,
+                  f"Campanha: {prod_escolhido}",
+                  redes_str,
+                  estrategia
+                  if estrategia
+                  else "Formato Otimizado por IA (Vídeo/Carrossel)",
+                  ganchos,
+                  prompt_ia,
+                  legendas,
+                  hashtags,
+              ),
+              fetch=False,
+          )
+
+          st.success(
+              "🎉 Análise concluída! O pacote estratégico foi salvo na Central"
+              " de Pendentes."
+          )
+          st.markdown(texto_gerado)
   else:
     st.warning("Cadastre um produto na aba de Catálogo primeiro.")
 
-# --- TELA 4: CENTRAL DE PENDENTES (SEPARADO POR TÓPICOS) ---
+# --- TELA 4: CENTRAL DE PENDENTES (KANBAN) ---
 elif menu == "📋 Central de Pendentes (Kanban)":
   st.title("📋 Central de Pendentes & Redes Sociais")
   st.markdown(
-      "Abra o card e copie cada pedacinho separadamente com facilidade no"
-      " celular."
+      "Acompanhe o formato escolhido pela IA, copie os blocos separadamente e"
+      " marque as postagens."
   )
 
-  df_full = run_query("""
-        SELECT c.id, p.nome as produto, c.titulo, c.tipo_midia, c.status, 
-               c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee 
-        FROM conteudos c 
-        LEFT JOIN produtos p ON c.produto_id = p.id
-    """)
-
-  if not df_full.empty:
-    try:
-      output = io.BytesIO()
-      with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df_full.to_excel(writer, index=False, sheet_name="Pendentes_Achados")
-      excel_data = output.getvalue()
-
-      st.download_button(
-          label="📥 Exportar Dados para Excel (.xlsx)",
-          data=excel_data,
-          file_name="central_achados_felipe.xlsx",
-          mime=(
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          ),
-      )
-    except Exception:
-      pass
-    st.markdown("---")
-
   df_kanban = run_query("""
-        SELECT c.id, p.nome as produto, c.titulo, c.tipo_midia, c.status, 
-               c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee, c.pacote_completo 
+        SELECT c.id, p.nome as produto, c.titulo, c.redes_alvo, c.estrategia_ia, c.status, 
+               c.post_tiktok, c.post_instagram, c.post_pinterest, c.post_shopee, 
+               c.ganchos, c.prompt_ia, c.legendas, c.hashtags 
         FROM conteudos c 
         LEFT JOIN produtos p ON c.produto_id = p.id 
         ORDER BY c.id DESC
@@ -315,81 +373,36 @@ elif menu == "📋 Central de Pendentes (Kanban)":
       status_icone = (
           "✔️" if "Concluído" in str(row["status"]) else "🟡 Pendente"
       )
+      estrategia_tag = (
+          f" | 🤖 *{row['estrategia_ia']}*" if row["estrategia_ia"] else ""
+      )
+
       with st.expander(
-          f"[{status_icone}] {row['produto']} - {row['titulo']}"
+          f"[{status_icone}] {row['produto']} (Redes: {row['redes_alvo']})"
       ):
-        st.markdown(f"**Tipo de Mídia:** {row['tipo_midia']}")
+        st.markdown(f"**Estratégia Definida pela IA:** {estrategia_tag}")
         st.markdown("---")
 
-        # Função simples para quebrar o texto gerado por seções
-        texto_completo = str(row["pacote_completo"])
-
-        # Divisão inteligente baseada nos títulos gerados pela IA
-        partes = {
-            "Ganchos e Títulos": "",
-            "Roteiro e Prompt": "",
-            "Textos e Legendas": "",
-            "Hashtags e CTA": "",
-        }
-
-        try:
-          # Tentativa de fatiar o texto gerado de acordo com os marcadores
-          blocos = texto_completo.split("###")
-          for bloco in blocos:
-            if "1. GANCHOS" in bloco or "GANCHOS" in bloco:
-              partes["Ganchos e Títulos"] = bloco.replace(
-                  "🎯 1. GANCHOS E TÍTULOS (0 a 3 segundos)", ""
-              ).strip()
-            elif "2. ROTEIRO" in bloco or "ROTEIRO" in bloco:
-              partes["Roteiro e Prompt"] = bloco.replace(
-                  "🎬 2. ROTEIRO & PROMPT DE CRIAÇÃO", ""
-              ).strip()
-            elif "3. TEXTOS" in bloco or "TEXTOS" in bloco:
-              partes["Textos e Legendas"] = bloco.replace(
-                  "📱 3. TEXTOS E LEGENDAS POR REDE SOCIAL", ""
-              ).strip()
-            elif "4. HASHTAGS" in bloco or "HASHTAGS" in bloco:
-              partes["Hashtags e CTA"] = bloco.replace(
-                  "#️⃣ 4. HASHTAGS E INSIGHTS", ""
-              ).strip()
-        except Exception:
-          pass
-
-        # Se por acaso a IA variar o formato, exibimos o texto completo como fallback nas caixas
-        if not partes["Ganchos e Títulos"]:
-          partes["Ganchos e Títulos"] = texto_completo
+        g = (
+            row["ganchos"]
+            if row["ganchos"]
+            else "Conteúdo salvo no formato legado."
+        )
+        p = row["prompt_ia"] if row["prompt_ia"] else "N/A"
+        l = row["legendas"] if row["legendas"] else "N/A"
+        h = row["hashtags"] if row["hashtags"] else "N/A"
 
         st.markdown("### 🎯 1. Ganchos e Títulos")
-        st.text_area(
-            "Copiar Ganchos",
-            value=partes["Ganchos e Títulos"],
-            height=80,
-            key=f"ganchos_{row['id']}",
-        )
+        st.code(g, language="markdown")
 
-        st.markdown("### 🎬 2. Roteiro e Prompt de Vídeo")
-        st.text_area(
-            "Copiar Prompt",
-            value=partes["Roteiro e Prompt"],
-            height=100,
-            key=f"prompt_{row['id']}",
-        )
+        st.markdown("### 🎬 2. Prompt Estratégico (Vídeo / Carrossel)")
+        st.code(p, language="markdown")
 
         st.markdown("### 📱 3. Textos e Legendas")
-        st.text_area(
-            "Copiar Legendas",
-            value=partes["Textos e Legendas"],
-            height=120,
-            key=f"legendas_{row['id']}",
-        )
+        st.code(l, language="markdown")
 
         st.markdown("### #️⃣ 4. Hashtags e CTA")
-        st.text_area(
-            "Copiar Hashtags",
-            value=partes["Hashtags e CTA"],
-            height=80,
-            key=f"tags_{row['id']}",
-        )
+        st.code(h, language="markdown")
 
         st.markdown("---")
         st.markdown("**Checklist de Postagem por Rede:**")
@@ -408,7 +421,7 @@ elif menu == "📋 Central de Pendentes (Kanban)":
               key=f"ig_{row['id']}",
           )
         with col3:
-          p = st.checkbox(
+          p_net = st.checkbox(
               "Pinterest",
               value=bool(row["post_pinterest"]),
               key=f"pin_{row['id']}",
@@ -423,7 +436,7 @@ elif menu == "📋 Central de Pendentes (Kanban)":
         if (
             t != bool(row["post_tiktok"])
             or i != bool(row["post_instagram"])
-            or p != bool(row["post_pinterest"])
+            or p_net != bool(row["post_pinterest"])
             or s != bool(row["post_shopee"])
         ):
           run_query(
@@ -432,7 +445,7 @@ elif menu == "📋 Central de Pendentes (Kanban)":
                         SET post_tiktok = ?, post_instagram = ?, post_pinterest = ?, post_shopee = ?
                         WHERE id = ?
                     """,
-              (int(t), int(i), int(p), int(s), row["id"]),
+              (int(t), int(i), int(p_net), int(s), row["id"]),
               fetch=False,
           )
           st.rerun()
