@@ -79,13 +79,28 @@ def run_query(query, params=(), fetch=True):
   conn.close()
 
 
-# --- CONFIGURAÇÃO DA IA ---
+# --- CONFIGURAÇÃO DA IA E ALTERNADOR INTELIGENTE ---
 try:
   api_key = st.secrets["GEMINI_API_KEY"]
   client = genai.Client(api_key=api_key)
   IA_DISPONIVEL = True
 except Exception as e:
   IA_DISPONIVEL = False
+
+def chamar_ia_com_alternador(prompt_texto):
+  """Tenta o modelo 2.5, se der erro de limite, cai para o modelo 1.5 instantaneamente"""
+  try:
+    resposta = client.models.generate_content(
+        model="gemini-2.5-flash", contents=prompt_texto
+    )
+    return resposta.text
+  except Exception:
+    # Se a cota do 2.5 estourou, usa o 1.5 que tem 1.500 requests por dia
+    resposta_fallback = client.models.generate_content(
+        model="gemini-1.5-flash", contents=prompt_texto
+    )
+    return resposta_fallback.text
+
 
 # --- NAVEGAÇÃO SUPERIOR ---
 st.title("🚀 Central Achados do Felipe")
@@ -103,7 +118,7 @@ menu = st.radio(
 
 st.markdown("---")
 
-# --- TELA 1: GERADOR DE ROTEIROS (AGORA DENTRO DE UM FORMULÁRIO SEGURO) ---
+# --- TELA 1: GERADOR DE ROTEIROS ---
 if menu == "🎬 Gerador de Roteiros":
   st.markdown("### 🎬 Gerador de Roteiro Inteligente")
 
@@ -117,7 +132,6 @@ if menu == "🎬 Gerador de Roteiros":
     """)
 
   if not df_produtos.empty:
-    # O SEGREDO ESTÁ AQUI: st.form impede o celular de dar refresh na página sozinho
     with st.form("form_gerador"):
       prod_escolhido = st.selectbox(
           "Selecione o Produto", df_produtos["nome"].tolist()
@@ -134,7 +148,7 @@ if menu == "🎬 Gerador de Roteiros":
             else "Link de afiliado"
         )
 
-        with st.spinner("Gerando textos... por favor, aguarde na tela."):
+        with st.spinner("Gerando textos via IA... (Alternando servidor se necessário)"):
           try:
             prompt_simples = f"""
             Atue como estrategista de marketing digital.
@@ -153,10 +167,8 @@ if menu == "🎬 Gerador de Roteiros":
             PROMPT_IA: Prompt em inglês
             """
 
-            response = client.models.generate_content(
-                model="gemini-2.5-flash", contents=prompt_simples
-            )
-            texto = response.text
+            # Usa nossa nova função blindada
+            texto = chamar_ia_com_alternador(prompt_simples)
 
             estrategia = "Vídeo Dinâmico"
             tik_tit = f"Olha esse achado: {prod_escolhido}"
@@ -203,11 +215,10 @@ if menu == "🎬 Gerador de Roteiros":
             )
 
             st.success("🎉 Roteiro salvo na Central de Pendentes!")
-            # O rerun agora acontece de forma segura após o form ser processado
             st.rerun()
 
           except Exception as e:
-            st.error(f"⚠️ Erro ao gerar: {e}")
+            st.error(f"⚠️ Erro ao comunicar com os dois modelos da IA. Tente mais tarde.")
   else:
     st.info("Todos os produtos cadastrados já tiveram seus roteiros gerados!")
 
@@ -266,13 +277,16 @@ elif menu == "📦 Catálogo":
     enviar = st.form_submit_button("Cadastrar Produto 🚀")
 
     if enviar and texto_bruto:
-      with st.spinner("Cadastrando..."):
+      with st.spinner("Cadastrando produto..."):
         try:
           prompt_cat = f'Extraia: "{texto_bruto}"\nNOME: nome do produto\nLINK: apenas url http'
-          res = client.models.generate_content(model="gemini-2.5-flash", contents=prompt_cat)
+          
+          # Usa nossa nova função blindada
+          texto_resposta = chamar_ia_com_alternador(prompt_cat)
+          
           nome, link = "Achado Shopee", texto_bruto
 
-          for l in res.text.split("\n"):
+          for l in texto_resposta.split("\n"):
             if "NOME:" in l: nome = l.replace("NOME:", "").strip()
             elif "LINK:" in l: link = l.replace("LINK:", "").strip()
 
@@ -284,7 +298,7 @@ elif menu == "📦 Catálogo":
           st.success(f"Produto '{nome}' cadastrado!")
           st.rerun()
         except Exception:
-          run_query("INSERT INTO produtos (nome, nicho, link_afiliado) VALUES ('Achado', 'Geral', ?)", (texto_bruto,), fetch=False)
+          run_query("INSERT INTO produtos (nome, nicho, link_afiliado) VALUES ('Produto Shopee', 'Geral', ?)", (texto_bruto,), fetch=False)
           st.rerun()
 
   st.markdown("---")
