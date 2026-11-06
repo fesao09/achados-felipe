@@ -49,40 +49,30 @@ except:
 
 st.markdown("---")
 
-menu = st.radio("Navegação Rápida", ["🎬 Gerar", "📋 Pendentes", "📦 Catálogo", "🧠 Treinamento", "📊 Dashboard"], horizontal=True)
+# MENU DE NAVEGAÇÃO AMPLIADO COM A ABA DE AUTO-EVOLUÇÃO
+menu = st.radio(
+    "Navegação Rápida", 
+    ["🎬 Gerar", "📋 Pendentes", "📦 Catálogo", "🧠 Treinamento", "🧬 Auto-Evolução", "📊 Dashboard"], 
+    horizontal=True
+)
 st.markdown("---")
 
-# --- MEGA CÉREBRO V3 (COM VARIÁVEL {destaque} DINÂMICA) ---
+# --- GERENCIAMENTO DO CÉREBRO JSON ---
 CEREBRO_FILE = "cerebro_v3.json"
-
-DEFAULT_CEREBRO = {
-    "Casa & Decoração": {
-        "tags": "#donadecasa #dicaspracasa #decoracao #achadinhosshopee #shopeebrasil",
-        "ganchos_tik": ["Sua casa precisa desse achado urgente:", "Como deixar sua casa mais moderna gastando pouco:", "Testei o achado que viralizou no app vizinho!"],
-        "legenda_tik": ["😱 {destaque} Já garante na sacolinha amarela antes que esgote 👇\n{link}\n\n{tags}", "✨ O segredo da casa Pinterest revelado! Link na sacolinha 👇\n{link}\n\n{tags}"],
-        "titulos_insta": ["O Segredo da Casa Perfeita 🏡", "Transforme seu Lar com {nome} ✨"],
-        "legenda_insta": ["✨ Por que ninguém me avisou disso antes?\n\nEsse achado chamado {nome} muda a rotina e deixa tudo mais prático. {destaque}\n\n🔗 Comente 'EU QUERO' ou clique no link da BIO para garantir com desconto.\n\n{tags}"]
-    },
-    "Eletrônicos": {
-        "tags": "#tecnologia #eletronicos #setupgamer #dicastech #achadosshopee #shopeebr",
-        "ganchos_tik": ["A tecnologia que você precisava e não sabia:", "O segredo para um setup perfeito gastando pouco:", "Não compre eletrônicos antes de ver esse achado:"],
-        "legenda_tik": ["⚡ {destaque} Corre na sacolinha amarela 👇\n{link}\n\n{tags}", "Setup atualizado com sucesso 🚀 Link na sacolinha 👇\n{link}\n\n{tags}"],
-        "titulos_insta": ["Tech Premium e Barata 💻", "Upgrade Obrigatório: {nome} ⚡"],
-        "legenda_insta": ["⚡ Procura qualidade sem pagar preço de grife?\n\nO achado {nome} entrega tudo! {destaque} Um custo-benefício que só achando na Shopee pra acreditar.\n\n🔗 Corre no link da BIO antes que o estoque acabe!\n\n{tags}"]
-    },
-    "Geral": {
-        "tags": "#achados #achadinhos #shopeebrasil #comprasshopee #dicas",
-        "ganchos_tik": ["Pare de rolar o feed e veja esse achado:", "Comprei o item mais útil da Shopee:", "Como eu vivi tanto tempo sem isso?"],
-        "legenda_tik": ["🚀 Praticidade em nível máximo! {destaque} Link na sacolinha 👇\n{link}\n\n{tags}", "Genial! E o preço tá surreal na sacolinha 👇\n{link}\n\n{tags}"],
-        "titulos_insta": ["Achado de Ouro 🏆", "Você Precisa de um {nome} 🚀"],
-        "legenda_insta": ["🚀 Sabe aquele produto que você não sabia que precisava até ver?\n\nO item {nome} é exatamente assim! Ele resolve problemas do dia a dia e impressiona pela qualidade. {destaque}\n\n🔗 O link tá te esperando na BIO.\n\n{tags}"]
-    }
-}
 
 def carregar_cerebro():
     if not os.path.exists(CEREBRO_FILE):
+        default_base = {
+            "Geral (Coringa)": {
+                "tags": "#achados #achadinhos #shopeebrasil #comprasshopee",
+                "ganchos_tik": ["Olha esse achado imperdível:"],
+                "legenda_tik": ["😱 Garanta na sacolinha amarela 👇\n{link}\n\n{tags}"],
+                "titulos_insta": ["Achado de Ouro 🏆"],
+                "legenda_insta": ["🚀 Sabe aquele produto útil? O {nome} é perfeito. {destaque}\n🔗 Link na BIO.\n\n{tags}"]
+            }
+        }
         with open(CEREBRO_FILE, "w", encoding="utf-8") as f:
-            json.dump(DEFAULT_CEREBRO, f, indent=4, ensure_ascii=False)
+            json.dump(default_base, f, indent=4, ensure_ascii=False)
     with open(CEREBRO_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -105,7 +95,6 @@ def init_db():
             link_afiliado TEXT
         )
     """)
-  # Atualiza tabela antiga caso não tenha as colunas novas
   try:
       cursor.execute("ALTER TABLE produtos ADD COLUMN nome_curto TEXT")
       cursor.execute("ALTER TABLE produtos ADD COLUMN destaques TEXT")
@@ -146,7 +135,17 @@ def run_query(query, params=(), fetch=True):
   conn.commit()
   conn.close()
 
-# --- INTELIGÊNCIA EXTRATORA OFFLINE (MOTOR DE ATRIBUTOS) ---
+# --- CONFIGURAÇÃO DA IA ---
+IA_DISPONIVEL = False
+try:
+  from google import genai
+  api_key = st.secrets["GEMINI_API_KEY"]
+  client = genai.Client(api_key=api_key)
+  IA_DISPONIVEL = True
+except Exception:
+  pass
+
+# --- MOTOR DE ATRIBUTOS E EXTRATOR ---
 def limpar_e_extrair_shopee(texto_bruto):
     link_puro = texto_bruto
     for p in texto_bruto.split():
@@ -161,102 +160,143 @@ def limpar_e_extrair_shopee(texto_bruto):
         nome_puro = nome_puro.split(" por R$")[0]
     nome_puro = nome_puro.replace("Compre na Shopee agora!", "").replace(link_puro, "").strip()
     
-    # 1. Extração Inteligente de Benefícios
     atributos = []
     t_lower = nome_puro.lower()
-    
-    # Busca tempo de bateria (ex: 34h)
     bat_match = re.search(r'(\d+)\s*h', t_lower)
     if bat_match: atributos.append(f"bateria de {bat_match.group(1)}h")
     elif "bateria" in t_lower: atributos.append("bateria de longa duração")
     
-    if "ip" in t_lower or "água" in t_lower: atributos.append("proteção extra contra água")
+    if "ip" in t_lower or "água" in t_lower: atributos.append("proteção contra água")
     if "bluetooth" in t_lower or "sem fio" in t_lower: atributos.append("conexão sem fio")
     if "gb" in t_lower: atributos.append("alto armazenamento")
-    if "led" in t_lower or "rgb" in t_lower: atributos.append("iluminação led")
     
-    frase_destaque = "Design impecável e super funcional!"
+    frase_destaque = "Design impecável e alta qualidade!"
     if atributos:
-        frase_destaque = "Ele entrega " + " e ".join(atributos[:2]) + "!"
+        frase_destaque = "Ele conta com " + " e ".join(atributos[:2]) + "!"
 
-    # 2. Criar Nome Curto Comercial (Pega apenas as primeiras 5 palavras)
     palavras = nome_puro.split()
-    nome_curto = " ".join(palavras[:5]).rstrip(",-:")
-    
+    nome_curto = " ".join(palavras[:4]).rstrip(",-:")
     if not nome_curto:
         nome_curto = "Achado Imperdível"
         nome_puro = "Produto Shopee"
         
     return nome_puro, nome_curto, link_puro, frase_destaque
 
-def gerar_textos_enciclopedia(nome_curto, nome_longo, link, categoria, destaque):
+def gerar_textos_hibridos(nome_curto, nome_longo, link, categoria, destaque, usar_ia_forcado=False):
     cerebro = carregar_cerebro()
-    cat_data = cerebro.get(categoria, cerebro.get("Geral", DEFAULT_CEREBRO["Geral"]))
+    cat_data = cerebro.get(categoria, cerebro.get("Geral (Coringa)", list(cerebro.values())[0]))
     
     tags = cat_data.get("tags", "#achados #shopee")
+    
+    if usar_ia_forcado and IA_DISPONIVEL:
+        try:
+            prompt = f"""Gere textos altamente persuasivos para afiliado baseados nas especificações reais.
+Produto Completo: '{nome_longo}'
+Link: {link}
+Categoria: {categoria}
 
-    tik_tit_template = random.choice(cat_data.get("ganchos_tik", ["Pare o que está fazendo e veja esse achado:"]))
-    tik_leg_template = random.choice(cat_data.get("legenda_tik", ["😱 Garanta na sacolinha amarela 👇\n{link}\n\n{tags}"]))
+Responda EXATAMENTE neste formato de chaves:
+TIK_TITULO: Gancho curto e magnético para TikTok
+TIK_LEGENDA: Legenda para TikTok com sacolinha e tags ({tags})
+INSTA_TITULO: Título chamativo para Capa do Reels
+INSTA_LEGENDA: Legenda rica e persuasiva para Instagram com link na bio e tags ({tags})
+PIN_TITULO: Título rico em SEO para Pinterest (até 100 caracteres)
+PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest usando todas as especificações do produto, com chamada para ação e tags ({tags})
+SHP_LEGENDA: Legenda curta para Shopee Vídeo com link
+PROMPT_IA: Prompt em inglês para imagem"""
+            
+            res = client.models.generate_content(model="gemini-1.5-flash", contents=prompt).text
+            
+            t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia = "", "", "", "", "", "", "", ""
+            for l in res.split("\n"):
+                if ":" in l:
+                    ch, val = l.split(":", 1)
+                    ch, val = ch.strip().upper(), val.strip()
+                    if "TIK_TITULO" in ch: t_tit = val
+                    elif "TIK_LEGENDA" in ch: t_leg = val
+                    elif "INSTA_TITULO" in ch: i_tit = val
+                    elif "INSTA_LEGENDA" in ch: i_leg = val
+                    elif "PIN_TITULO" in ch: p_tit = val
+                    elif "PIN_DESCRICAO" in ch: p_desc = val
+                    elif "SHP_LEGENDA" in ch: s_leg = val
+                    elif "PROMPT_IA" in ch: p_ia = val
+            
+            if t_tit and p_desc:
+                return "Gerado via IA Híbrida 🤖", t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia
+        except:
+            pass
+
+    tik_tit_template = random.choice(cat_data.get("ganchos_tik", ["Olha esse achado:"]))
+    tik_leg_template = random.choice(cat_data.get("legenda_tik", ["Garanta na sacolinha 👇\n{link}\n\n{tags}"]))
+    insta_tit_template = random.choice(cat_data.get("titulos_insta", ["Achado Imperdível ✨"]))
+    insta_leg_template = random.choice(cat_data.get("legenda_insta", ["Confira o {nome}! {destaque}\n🔗 Link na bio.\n\n{tags}"]))
     
-    insta_tit_template = random.choice(cat_data.get("titulos_insta", ["Achado Obrigatório ✨"]))
-    insta_leg_template = random.choice(cat_data.get("legenda_insta", ["✨ O {nome} vai mudar sua rotina! {destaque}\n🔗 Link na bio.\n\n{tags}"]))
-    
-    # Substitui as variáveis
     tik_tit = tik_tit_template.replace("{nome}", nome_curto).replace("{destaque}", destaque)
     tik_leg = tik_leg_template.replace("{nome}", nome_curto).replace("{link}", link).replace("{tags}", tags).replace("{destaque}", destaque)
     
     insta_tit = insta_tit_template.replace("{nome}", nome_curto)
     insta_leg = insta_leg_template.replace("{nome}", nome_curto).replace("{link}", link).replace("{tags}", tags).replace("{destaque}", destaque)
     
-    pin_tit = f"{nome_curto} - Melhor Oferta e Review"
-    pin_desc = f"Procurando por {nome_curto}? Descubra todos os detalhes. {destaque} Aproveite a oferta e confira o link oficial: {link}\n{tags}"
+    pin_tit = f"{nome_curto} - Review Completo e Onde Comprar"
+    pin_desc = f"Procurando por {nome_longo}? Descubra todos os detalhes técnicos deste super produto da categoria {categoria}. {destaque} O item ideal para quem busca o máximo de desempenho e qualidade. Aproveite a oferta oficial e confira o link de desconto direto: {link} \n\nTags recomendadas: {tags}"
     
-    shp_leg = f"Achado de ouro! {nome_curto}. Confira na vitrine 👇\n{link} #achados"
+    shp_leg = f"Achado imperdível! {nome_curto}. Confira na vitrine 👇\n{link} #achados"
     if len(shp_leg) > 150:
-        shp_leg = f"Achado de ouro! Vitrine 👇\n{link} #achados"
+        shp_leg = f"Achado imperdível! Vitrine 👇\n{link} #achados"
         
-    prompt_ia = f"UGC aesthetic TikTok video showcasing {nome_curto}, trendy lifestyle background, 4k"
+    prompt_ia = f"UGC aesthetic video showcasing {nome_curto}, trendy lifestyle background, 4k"
     
-    return "Motor Offline V3 - Inteligência de Atributos", tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
+    return "Motor Offline Inteligente (Rico em SEO)", tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
 
 # ==========================================
-# LÓGICA DE NAVEGAÇÃO DAS TELAS
+# TELAS DO SISTEMA
 # ==========================================
 
-# --- TELA 1: GERADOR DE ROTEIROS ---
+# --- TELA 1: GERADOR ---
 if menu == "🎬 Gerar":
-  st.markdown("### 🎬 Motor de Alta Conversão (Inteligência Local)")
+  st.markdown("### 🎬 Central de Geração Estratégica")
 
   df_produtos = run_query("SELECT id, nome, nome_curto, destaques, nicho, link_afiliado FROM produtos WHERE id NOT IN (SELECT produto_id FROM conteudos WHERE produto_id IS NOT NULL)")
 
   if not df_produtos.empty:
     with st.form("form_gerador"):
       prod_escolhido = st.selectbox("Selecione o Produto", df_produtos["nome"].tolist())
-      btn_gerar = st.form_submit_button("Gerar Copy Estratégica 🚀")
+      
+      modo_geracao = st.radio(
+          "Escolha o Motor de Geração:",
+          ["⚡ Motor Offline Inteligente (Garantido e Rico)", "🤖 Tentar Forçar com Inteligência Artificial (Gemini)"],
+          index=0
+      )
+      
+      btn_gerar = st.form_submit_button("Gerar Pacote de Roteiros 🚀")
 
       if btn_gerar:
         prod_row = df_produtos.loc[df_produtos["nome"] == prod_escolhido].iloc[0]
         prod_id = int(prod_row["id"])
         link_af = str(prod_row["link_afiliado"])
         nicho = str(prod_row["nicho"])
-        
-        # Puxa as variáveis inteligentes recém salvas
-        n_curto = str(prod_row["nome_curto"]) if pd.notna(prod_row["nome_curto"]) else str(prod_row["nome"])[:25]
-        destaque = str(prod_row["destaques"]) if pd.notna(prod_row["destaques"]) else "Design impecável e super funcional!"
+        n_longo = str(prod_row["nome"])
+        n_curto = str(prod_row["nome_curto"]) if pd.notna(prod_row["nome_curto"]) else n_longo[:25]
+        destaque = str(prod_row["destaques"]) if pd.notna(prod_row["destaques"]) else "Qualidade garantida!"
 
-        estrategia, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia = gerar_textos_enciclopedia(n_curto, prod_escolhido, link_af, nicho, destaque)
+        usar_ia = True if "Inteligência Artificial" in modo_geracao else False
+
+        with st.spinner("Processando roteiros e otimizando SEO..."):
+            estrategia, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia = gerar_textos_hibridos(
+                n_curto, n_longo, link_af, nicho, destaque, usar_ia_forcado=usar_ia
+            )
 
         run_query(
             "INSERT INTO conteudos (produto_id, estrategia_ia, tik_titulo_video, tik_legenda, insta_titulo_video, insta_legenda, pin_titulo, pin_descricao, shp_legenda, prompt_ia, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendente 🟡')",
             (prod_id, estrategia, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia),
             fetch=False
         )
-        st.success("🎉 Roteiro inteligente gerado offline com sucesso!")
+        st.success(f"🎉 Sucesso! Método utilizado: {estrategia}")
         st.rerun()
   else:
     st.info("Catálogo vazio ou todos os produtos já gerados!")
 
-# --- TELA 2: CENTRAL DE PENDENTES ---
+# --- TELA 2: PENDENTES ---
 elif menu == "📋 Pendentes":
   st.markdown("### 📋 Central de Pendentes")
 
@@ -267,13 +307,13 @@ elif menu == "📋 Pendentes":
       status_ico = "✔️ Concluído" if "Concluído" in str(row["status"]) else "🟡 Pendente"
       nome_p = row["produto"] if pd.notna(row["produto"]) else "Produto"
 
-      with st.expander(f"[{status_ico}] {nome_p}"):
+      with st.expander(f"[{status_ico}] {nome_p} — ({row['estrategia_ia']})"):
         st.text_input("TikTok Gancho", value=row["tik_titulo_video"] or "", key=f"tt_{row['id']}")
         st.text_area("TikTok Legenda", value=row["tik_legenda"] or "", height=90, key=f"tl_{row['id']}")
         st.text_input("Insta Capa", value=row["insta_titulo_video"] or "", key=f"it_{row['id']}")
         st.text_area("Insta Legenda", value=row["insta_legenda"] or "", height=150, key=f"il_{row['id']}")
         st.text_input("Pinterest Título", value=row["pin_titulo"] or "", key=f"pt_{row['id']}")
-        st.text_area("Pinterest Descrição", value=row["pin_descricao"] or "", height=120, key=f"pd_{row['id']}")
+        st.text_area("Pinterest Descrição (SEO Completo)", value=row["pin_descricao"] or "", height=160, key=f"pd_{row['id']}")
         st.text_area("Shopee Legenda", value=row["shp_legenda"] or "", height=60, key=f"sl_{row['id']}")
         
         c1, c2 = st.columns(2)
@@ -288,20 +328,19 @@ elif menu == "📋 Pendentes":
   else:
     st.info("Nenhum conteúdo pendente.")
 
-# --- TELA 3: CATÁLOGO INTELIGENTE ---
+# --- TELA 3: CATÁLOGO ---
 elif menu == "📦 Catálogo":
   st.markdown("### 📦 Catálogo de Produtos")
   cerebro = carregar_cerebro()
   nichos_disponiveis = list(cerebro.keys())
 
   with st.form("form_cat_manual"):
-    texto_zap = st.text_area("Cole a mensagem do WhatsApp:", placeholder="Dê uma olhada em Caixa de som por R$100. Compre aqui: https://...")
+    texto_zap = st.text_area("Cole a mensagem do WhatsApp ou Link Shopee:", placeholder="Dê uma olhada em Smart TV 50 polegadas por R$2.000...")
     nicho_prod = st.selectbox("Categoria:", nichos_disponiveis)
     
-    enviar = st.form_submit_button("Analisar e Salvar 🚀")
+    enviar = st.form_submit_button("Analisar e Salvar no Catálogo 🚀")
 
     if enviar and texto_zap:
-      # O MOTOR RODA AQUI AGORA! Extrai os dados antes de salvar no banco
       nome_puro, nome_curto, link_limpo, frase_destaque = limpar_e_extrair_shopee(texto_zap)
       
       run_query(
@@ -309,7 +348,7 @@ elif menu == "📦 Catálogo":
           (nome_puro, nome_curto, frase_destaque, nicho_prod, link_limpo), 
           fetch=False
       )
-      st.success(f"Analise Completa! Produto reconhecido: {nome_curto} | Identificado: {frase_destaque}")
+      st.success(f"Cadastrado! Nome Curto: {nome_curto} | Atributo extraído: {frase_destaque}")
       st.rerun()
 
   st.markdown("---")
@@ -327,50 +366,66 @@ elif menu == "📦 Catálogo":
           st.rerun()
       st.markdown("---")
 
-# --- TELA 4: CÉREBRO (TREINAMENTO) ---
+# --- TELA 4: TREINAMENTO ---
 elif menu == "🧠 Treinamento":
-  st.markdown("### 🧠 Treinamento de Copy (Modo Offline)")
-  st.markdown("Variavéis mágicas: `{nome}` = Nome encurtado bonito | `{destaque}` = Benefícios extraídos | `{link}` = Seu link")
-  
+  st.markdown("### 🧠 Categorias Existentes no Cérebro")
   cerebro = carregar_cerebro()
-  nichos_atuais = list(cerebro.keys())
-  
-  escolha = st.radio("O que você deseja fazer?", ["Editar Categoria Existente", "Criar Nova Categoria"], horizontal=True)
-  
-  if escolha == "Editar Categoria Existente":
-      nicho_selecionado = st.selectbox("Selecione a categoria para editar:", nichos_atuais)
-  else:
-      nicho_selecionado = st.text_input("Digite o nome da Nova Categoria:")
-  
-  st.markdown("---")
-  
-  if nicho_selecionado:
-      dados_atuais = cerebro.get(nicho_selecionado, {"tags": "", "ganchos_tik": [], "legenda_tik": [], "titulos_insta": [], "legenda_insta": []})
-      
-      with st.form("form_treino"):
-          st.markdown(f"**Estratégia da categoria:** {nicho_selecionado}")
-          
-          tags_str = st.text_area("Hashtags Padrão:", value=dados_atuais.get("tags", ""))
-          ganchos_str = st.text_area("Ganchos TikTok (Um por linha - Use {nome}):", value="\n".join(dados_atuais.get("ganchos_tik", [])))
-          leg_tik_str = st.text_area("Legenda TikTok (Separe opções com '---'):", value="\n---\n".join(dados_atuais.get("legenda_tik", [])))
-          titulos_str = st.text_area("Títulos Insta (Um por linha - Use {nome}):", value="\n".join(dados_atuais.get("titulos_insta", [])))
-          leg_ins_str = st.text_area("Legenda Insta (Separe opções com '---'):", value="\n---\n".join(dados_atuais.get("legenda_insta", [])))
-          
-          salvar_treino = st.form_submit_button("💾 Salvar Aprendizado")
-          
-          if salvar_treino:
-              cerebro[nicho_selecionado] = {
-                  "tags": tags_str.strip(),
-                  "ganchos_tik": [g.strip() for g in ganchos_str.split("\n") if g.strip() and g != "---"],
-                  "legenda_tik": [l.strip() for l in leg_tik_str.split("\n---\n") if l.strip()],
-                  "titulos_insta": [t.strip() for t in titulos_str.split("\n") if t.strip() and t != "---"],
-                  "legenda_insta": [l.strip() for l in leg_ins_str.split("\n---\n") if l.strip()]
-              }
-              salvar_cerebro(cerebro)
-              st.success("🧠 Copywriter atualizado!")
-              st.rerun()
+  for cat in cerebro.keys():
+      st.markdown(f"- 📁 **{cat}**")
+  st.info("Dica: Use a nova aba '🧬 Auto-Evolução' para criar novas categorias automaticamente com a IA.")
 
-# --- TELA 5: DASHBOARD ---
+# --- TELA 5: AUTO-EVOLUÇÃO (NOVO RECURSO INTELIGENTE) ---
+elif menu == "🧬 Auto-Evolução":
+  st.markdown("### 🧬 Auto-Evolução do Cérebro Offline")
+  st.markdown("Digite abaixo o nome de uma nova categoria ou nicho que você deseja ensinar ao aplicativo (Ex: *Smart TVs e Eletro*, *Camping e Lazer*, *Mesas e Móveis*, *Automotivo*). A IA vai estruturar a copy perfeita e injetar no seu arquivo JSON de forma permanente!")
+
+  with st.form("form_auto_evolucao"):
+    novo_nicho = st.text_input("Nome da Nova Categoria/Nicho:", placeholder="Ex: Smart TVs e Telas")
+    btn_evoluir = st.form_submit_button("Gerar e Injetar Categoria no Cérebro 🧬")
+
+    if btn_evoluir and novo_nicho:
+      if not IA_DISPONIVEL:
+        st.error("A API do Gemini não está disponível no momento para gerar o novo nicho.")
+      else:
+        with st.spinner(f"A Inteligência Artificial está estudando o nicho '{novo_nicho}' e criando as regras de copy..."):
+          try:
+            prompt_evolucao = f"""Crie uma estrutura JSON de copywriting de alta conversão para o nicho de e-commerce/afiliados chamado '{novo_nicho}'.
+Responda APENAS com um objeto JSON válido, sem markdown extra, contendo exatamente estas chaves:
+{{
+  "{novo_nicho}": {{
+    "tags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4",
+    "ganchos_tik": [
+      "Gancho magnético 1 com {{nome}}:",
+      "Gancho magnético 2 com {{nome}}:"
+    ],
+    "legenda_tik": [
+      "Legenda envolvente para TikTok com {{link}}, {{tags}} e {{destaque}}"
+    ],
+    "titulos_insta": [
+      "Título de Capa 1",
+      "Título de Capa 2"
+    ],
+    "legenda_insta": [
+      "Legenda persuasiva estruturada para Instagram para o produto {{nome}}, destacando benefícios, com chamada para ação, {{link}} e {{tags}}."
+    ]
+  }}
+}}"""
+            resposta_ia = client.models.generate_content(model="gemini-1.5-flash", contents=prompt_evolucao).text
+            
+            # Limpa formatações de bloco de código caso a IA mande ```json ... ```
+            limpo = resposta_ia.replace("```json", "").replace("```", "").strip()
+            novo_bloco = json.loads(limpo)
+            
+            # Carrega o cérebro atual, atualiza com a nova categoria e salva
+            cerebro_atual = carregar_cerebro()
+            cerebro_atual.update(novo_bloco)
+            salvar_cerebro(cerebro_atual)
+            
+            st.success(f"🧬 Sucesso absoluto! A categoria '{novo_nicho}' foi aprendida e injetada no seu arquivo JSON com sucesso. Ela já está disponível no Catálogo!")
+          except Exception as e:
+            st.error(f"Erro ao processar a evolução automática: {e}")
+
+# --- TELA 6: DASHBOARD ---
 elif menu == "📊 Dashboard":
   st.markdown("### 📊 Dashboard & Metas")
   total = len(run_query("SELECT * FROM conteudos WHERE status LIKE '%Concluído%'"))
