@@ -226,7 +226,6 @@ if menu == "🎬 Gerador Inteligente":
             )
             texto_gerado = response.text
 
-            # Valores padrão caso alguma tag falhe
             estrategia = "Formato Otimizado por IA"
             tik_tit = f"Olha esse achado: {prod_escolhido}"
             tik_leg = f"Achado incrível! Garanta já o seu na sacolinha amarela. {link_afiliado} #achados #shopee"
@@ -237,7 +236,6 @@ if menu == "🎬 Gerador Inteligente":
             shp_leg = f"Achado imperdível! Confira na vitrine. {link_afiliado}"
             prompt_ia = f"Professional product showcase video of {prod_escolhido}, clean lighting, high quality."
 
-            # Fatiamento seguro por partes
             if "[ESTRATEGIA]" in texto_gerado:
               try:
                 partes = texto_gerado.split("[")
@@ -263,7 +261,6 @@ if menu == "🎬 Gerador Inteligente":
               except Exception:
                 pass
             else:
-              # Fallback caso a IA responda em texto corrido sem tags
               tik_tit = texto_gerado[:100]
 
             run_query(
@@ -300,8 +297,8 @@ if menu == "🎬 Gerador Inteligente":
 
           except Exception as e:
             st.error(
-                f"⚠️ Erro ao comunicar com a IA: {e}. Tente novamente em"
-                " instantes."
+                "⚠️ Os servidores do Gemini instabilizaram momentaneamente."
+                " Por favor, clique no botão de gerar novamente em instantes."
             )
   else:
     st.info(
@@ -480,7 +477,7 @@ elif menu == "📋 Central de Pendentes":
   else:
     st.info("Nenhum conteúdo pendente na central no momento.")
 
-# --- TELA 3: CATÁLOGO DE PRODUTOS ---
+# --- TELA 3: CATÁLOGO DE PRODUTOS (COM PROTEÇÃO CONTRA FALHA DA IA) ---
 elif menu == "📦 Catálogo":
   st.markdown("### 📦 Gestão de Produtos & Afiliados")
   st.markdown(
@@ -501,7 +498,9 @@ elif menu == "📦 Catálogo":
       if not IA_DISPONIVEL:
         st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
       else:
-        with st.spinner("A IA está processando o produto..."):
+        with st.spinner(
+            "A IA está processando o produto (com fallback de segurança)..."
+        ):
           prompt_extracao = f"""
                     Analise o texto bruto compartilhado de um produto de afiliado abaixo:
                     "{texto_bruto}"
@@ -511,36 +510,75 @@ elif menu == "📦 Catálogo":
                     [LINK] (Apenas a URL do link de afiliado encontrada no texto)
                     [CATEGORIA] (Defina uma categoria adequada e específica para este produto)
                     """
-          response = client.models.generate_content(
-              model="gemini-2.5-flash",
-              contents=prompt_extracao,
-          )
-          resultado = response.text
 
-          nome_extraido, link_extraido, nicho_extraido = "", "", "Geral"
           try:
-            partes = resultado.split("[")
-            for p in partes:
-              if p.startswith("NOME]"):
-                nome_extraido = p.replace("NOME]", "").strip()
-              elif p.startswith("LINK]"):
-                link_extraido = p.replace("LINK]", "").strip()
-              elif p.startswith("CATEGORIA]"):
-                nicho_extraido = p.replace("CATEGORIA]", "").strip()
-          except Exception:
-            nome_extraido = "Produto Importado Shopee"
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt_extracao,
+            )
+            resultado = response.text
 
-          if not nome_extraido:
-            nome_extraido = "Produto Importado Shopee"
+            nome_extraido, link_extraido, nicho_extraido = "", "", "Geral"
+            try:
+              partes = resultado.split("[")
+              for p in partes:
+                if p.startswith("NOME]"):
+                  nome_extraido = p.replace("NOME]", "").strip()
+                elif p.startswith("LINK]"):
+                  link_extraido = p.replace("LINK]", "").strip()
+                elif p.startswith("CATEGORIA]"):
+                  nicho_extraido = p.replace("CATEGORIA]", "").strip()
+            except Exception:
+              pass
 
-          run_query(
-              "INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)",
-              (nome_extraido, nicho_extraido, link_extraido),
-              fetch=False,
-          )
-          st.success(
-              f"🎉 Produto '{nome_extraido}' importado com sucesso!"
-          )
+            if not nome_extraido:
+              nome_extraido = (
+                  texto_bruto[:50]
+                  if len(texto_bruto) > 50
+                  else texto_bruto
+              )
+            if not link_extraido:
+              # Tenta achar um link http no texto bruto caso a IA não traga
+              words = texto_bruto.split()
+              for w in words:
+                if w.startswith("http"):
+                  link_extraido = w
+                  break
+              if not link_extraido:
+                link_extraido = "Link não extraído"
+
+            run_query(
+                "INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)",
+                (nome_extraido, nicho_extraido, link_extraido),
+                fetch=False,
+            )
+            st.success(
+                f"🎉 Produto '{nome_extraido}' importado com sucesso!"
+            )
+            st.rerun()
+
+          except Exception as e:
+            # Fallback total caso os servidores da IA caiam ao importar
+            nome_fallback = (
+                texto_bruto[:50] if len(texto_bruto) > 50 else texto_bruto
+            )
+            link_fallback = "Link na mensagem"
+            words = texto_bruto.split()
+            for w in words:
+              if w.startswith("http"):
+                link_fallback = w
+                break
+
+            run_query(
+                "INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)",
+                (nome_fallback, "Geral", link_fallback),
+                fetch=False,
+            )
+            st.success(
+                "🎉 Produto importado pelo modo de segurança (Servidor da IA"
+                " oscilou, mas seus dados foram salvos)!"
+            )
+            st.rerun()
 
   st.markdown("---")
   st.markdown("### 📋 Produtos Cadastrados (Gerenciamento)")
