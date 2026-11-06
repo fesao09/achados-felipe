@@ -118,9 +118,8 @@ st.markdown("---")
 if menu == "🎬 Gerador Inteligente":
   st.markdown("### 🎬 Gerador Estratégico de Conteúdo")
   st.markdown(
-      "A IA aplica rigorosamente as regras de cada rede (TikTok com sacolinha,"
-      " Shopee Vídeos com limite de 150 caracteres e Pinterest focado em SEO de"
-      " busca)."
+      "A IA aplica rigorosamente as regras de cada rede e estrutura os campos"
+      " com segurança."
   )
 
   if not IA_DISPONIVEL:
@@ -178,7 +177,7 @@ if menu == "🎬 Gerador Inteligente":
             "Selecione pelo menos uma rede social para direcionar a IA."
         )
       else:
-        with st.spinner("A IA está estruturando o pacote com as regras finas..."):
+        with st.spinner("A IA está estruturando o pacote com segurança..."):
           prompt_sistema = f"""
                     Atue como um estrategista sênior especialista em marketing de afiliados para o projeto 'Achados do Felipe'.
                     Analise o produto: '{prod_escolhido}' (Categoria: {nicho_prod}, Link: {link_afiliado}).
@@ -187,7 +186,7 @@ if menu == "🎬 Gerador Inteligente":
                     REGRAS RIGOROSAS DE PLATAFORMA (OBRIGATÓRIO SEGUIR):
                     1. TIKTOK: Foco em vídeo dinâmico, ganchos fortes de 0-3s e CTA obrigatório para a 'sacolinha amarela'.
                     2. INSTAGRAM: Título para capa/reels e legenda com CTA para 'link na bio' ou 'direct'. PROIBIDO falar em sacolinha amarela.
-                    3. PINTEREST: O título deve ser focado estritamente em PALAVRAS-CHAVE DE BUSCA (SEO para intenção de pesquisa do usuário, ex: 'Decoração Quarto Kpop Estética Cozy'). A descrição deve ser rica, detalhada e engajadora com até 800 caracteres voltada para descoberta visual.
+                    3. PINTEREST: O título deve ser focado estritamente em PALAVRAS-CHAVE DE BUSCA (SEO para intenção de pesquisa do usuário). A descrição deve ser rica, detalhada e engajadora com até 800 caracteres voltada para descoberta visual.
                     4. SHOPEE VÍDEOS: A legenda deve ser ULTRA CURTA, tendo no MÁXIMO 150 CARACTERES (já contando com as hashtags e o espaço), com CTA para o link da vitrine/comentários. PROIBIDO falar em sacolinha amarela.
                     
                     Responda estritamente utilizando estas tags exatas para separação:
@@ -220,81 +219,90 @@ if menu == "🎬 Gerador Inteligente":
                     (Prompt técnico em inglês limpo e direto com até 900 caracteres para gerar a mídia)
                     """
 
-          response = client.models.generate_content(
-              model="gemini-2.5-flash",
-              contents=prompt_sistema,
-          )
-          texto_gerado = response.text
-
-          estrategia, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia = (
-              "",
-              "",
-              "",
-              "",
-              "",
-              "",
-              "",
-              "",
-              "",
-          )
           try:
-            partes = texto_gerado.split("[")
-            for p in partes:
-              if p.startswith("ESTRATEGIA]"):
-                estrategia = p.replace("ESTRATEGIA]", "").strip()
-              elif p.startswith("TIK_TITULO]"):
-                tik_tit = p.replace("TIK_TITULO]", "").strip()
-              elif p.startswith("TIK_LEGENDA]"):
-                tik_leg = p.replace("TIK_LEGENDA]", "").strip()
-              elif p.startswith("INSTA_TITULO]"):
-                insta_tit = p.replace("INSTA_TITULO]", "").strip()
-              elif p.startswith("INSTA_LEGENDA]"):
-                insta_leg = p.replace("INSTA_LEGENDA]", "").strip()
-              elif p.startswith("PIN_TITULO]"):
-                pin_tit = p.replace("PIN_TITULO]", "").strip()
-              elif p.startswith("PIN_DESCRICAO]"):
-                pin_desc = p.replace("PIN_DESCRICAO]", "").strip()
-              elif p.startswith("SHP_LEGENDA]"):
-                shp_leg = p.replace("SHP_LEGENDA]", "").strip()
-              elif p.startswith("PROMPT_IA]"):
-                prompt_ia = p.replace("PROMPT_IA]", "").strip()
-          except Exception:
-            tik_tit = texto_gerado
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt_sistema,
+            )
+            texto_gerado = response.text
 
-          run_query(
-              """
-                    INSERT INTO conteudos (
-                        produto_id, redes_alvo, estrategia_ia, 
-                        tik_titulo_video, tik_legenda, 
-                        insta_titulo_video, insta_legenda, 
-                        pin_titulo, pin_descricao, 
-                        shp_legenda, prompt_ia, status
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendente 🟡')
-                """,
-              (
-                  prod_id,
-                  redes_str,
-                  estrategia
-                  if estrategia
-                  else "Formato Otimizado por IA",
-                  tik_tit,
-                  tik_leg,
-                  insta_tit,
-                  insta_leg,
-                  pin_tit,
-                  pin_desc,
-                  shp_leg,
-                  prompt_ia,
-              ),
-              fetch=False,
-          )
+            # Valores padrão caso alguma tag falhe
+            estrategia = "Formato Otimizado por IA"
+            tik_tit = f"Olha esse achado: {prod_escolhido}"
+            tik_leg = f"Achado incrível! Garanta já o seu na sacolinha amarela. {link_afiliado} #achados #shopee"
+            insta_tit = f"{prod_escolhido} que você precisa!"
+            insta_leg = f"Olha que item incrível para o seu dia a dia! Link na bio. {link_afiliado} #achados #reels"
+            pin_tit = f"{prod_escolhido} imperdível"
+            pin_desc = f"Descubra todos os detalhes sobre {prod_escolhido}. Excelente opção para quem busca qualidade e praticidade. Confira o link para saber mais!"
+            shp_leg = f"Achado imperdível! Confira na vitrine. {link_afiliado}"
+            prompt_ia = f"Professional product showcase video of {prod_escolhido}, clean lighting, high quality."
 
-          st.success(
-              "🎉 Pacote gerado com as regras ajustadas! Salvo na Central de"
-              " Pendentes."
-          )
-          st.rerun()
+            # Fatiamento seguro por partes
+            if "[ESTRATEGIA]" in texto_gerado:
+              try:
+                partes = texto_gerado.split("[")
+                for p in partes:
+                  if p.startswith("ESTRATEGIA]"):
+                    estrategia = p.replace("ESTRATEGIA]", "").strip()
+                  elif p.startswith("TIK_TITULO]"):
+                    tik_tit = p.replace("TIK_TITULO]", "").strip()
+                  elif p.startswith("TIK_LEGENDA]"):
+                    tik_leg = p.replace("TIK_LEGENDA]", "").strip()
+                  elif p.startswith("INSTA_TITULO]"):
+                    insta_tit = p.replace("INSTA_TITULO]", "").strip()
+                  elif p.startswith("INSTA_LEGENDA]"):
+                    insta_leg = p.replace("INSTA_LEGENDA]", "").strip()
+                  elif p.startswith("PIN_TITULO]"):
+                    pin_tit = p.replace("PIN_TITULO]", "").strip()
+                  elif p.startswith("PIN_DESCRICAO]"):
+                    pin_desc = p.replace("PIN_DESCRICAO]", "").strip()
+                  elif p.startswith("SHP_LEGENDA]"):
+                    shp_leg = p.replace("SHP_LEGENDA]", "").strip()
+                  elif p.startswith("PROMPT_IA]"):
+                    prompt_ia = p.replace("PROMPT_IA]", "").strip()
+              except Exception:
+                pass
+            else:
+              # Fallback caso a IA responda em texto corrido sem tags
+              tik_tit = texto_gerado[:100]
+
+            run_query(
+                """
+                        INSERT INTO conteudos (
+                            produto_id, redes_alvo, estrategia_ia, 
+                            tik_titulo_video, tik_legenda, 
+                            insta_titulo_video, insta_legenda, 
+                            pin_titulo, pin_descricao, 
+                            shp_legenda, prompt_ia, status
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendente 🟡')
+                    """,
+                (
+                    prod_id,
+                    redes_str,
+                    estrategia,
+                    tik_tit,
+                    tik_leg,
+                    insta_tit,
+                    insta_leg,
+                    pin_tit,
+                    pin_desc,
+                    shp_leg,
+                    prompt_ia,
+                ),
+                fetch=False,
+            )
+
+            st.success(
+                "🎉 Pacote gerado com sucesso! Salvo na Central de Pendentes."
+            )
+            st.rerun()
+
+          except Exception as e:
+            st.error(
+                f"⚠️ Erro ao comunicar com a IA: {e}. Tente novamente em"
+                " instantes."
+            )
   else:
     st.info(
         "🎉 Todos os produtos cadastrados já tiveram seus roteiros gerados!"
