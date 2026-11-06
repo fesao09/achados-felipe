@@ -41,7 +41,6 @@ def init_db():
             link_afiliado TEXT
         )
     """)
-  # Tabela unificada e segura para evitar qualquer erro de colunas corrompidas
   cursor.execute("""
         CREATE TABLE IF NOT EXISTS conteudos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,7 +64,6 @@ def init_db():
         )
     """)
 
-  # Garante colunas caso o banco seja antigo
   for col in [
       "redes_alvo",
       "estrategia_ia",
@@ -133,12 +131,12 @@ menu = st.radio(
 
 st.markdown("---")
 
-# --- TELA 1: GERADOR COM IA INTELIGENTE (BLINDADO) ---
+# --- TELA 1: GERADOR COM IA INTELIGENTE (ESTABILIZADO) ---
 if menu == "🎬 Gerador Inteligente":
   st.markdown("### 🎬 Gerador Estratégico de Conteúdo")
   st.markdown(
-      "A IA cria todo o pacote estruturado e o app separa certinho nas caixinhas"
-      " de cópia."
+      "Gere o pacote completo estruturado por redes com salvamento automático"
+      " garantido."
   )
 
   if not IA_DISPONIVEL:
@@ -196,48 +194,33 @@ if menu == "🎬 Gerador Inteligente":
             "Selecione pelo menos uma rede social para direcionar a IA."
         )
       else:
-        with st.spinner(
-            "A IA está estruturando o pacote para todas as redes..."
-        ):
+        with st.spinner("A IA está estruturando o pacote..."):
           prompt_sistema = f"""
                     Atue como um estrategista sênior especialista em marketing de afiliados para o projeto 'Achados do Felipe'.
                     Analise o produto: '{prod_escolhido}' (Categoria: {nicho_prod}, Link: {link_afiliado}).
                     As redes de destino escolhidas são: '{redes_str}'.
                     
-                    REGRAS RIGOROSAS DE PLATAFORMA (OBRIGATÓRIO SEGUIR):
-                    1. TIKTOK: Foco em vídeo dinâmico, ganchos fortes de 0-3s e CTA obrigatório para a 'sacolinha amarela'.
-                    2. INSTAGRAM: Título para capa/reels e legenda com CTA para 'link na bio' ou 'direct'. PROIBIDO falar em sacolinha amarela.
-                    3. PINTEREST: O título deve ser focado estritamente em PALAVRAS-CHAVE DE BUSCA (SEO para intenção de pesquisa do usuário). A descrição deve ser rica, detalhada e engajadora com até 800 caracteres voltada para descoberta visual.
-                    4. SHOPEE VÍDEOS: A legenda deve ser ULTRA CURTA, tendo no MÁXIMO 150 CARACTERES (já contando com as hashtags e o espaço), com CTA para o link da vitrine/comentários. PROIBIDO falar em sacolinha amarela.
+                    Gere os seguintes campos de forma limpa e direta:
+                    1. Estratégia de formato (Vídeo Dinâmico ou Carrossel)
+                    2. Título/Gancho para o TikTok (com sacolinha amarela)
+                    3. Legenda para o TikTok
+                    4. Título para o Instagram (link na bio)
+                    5. Legenda para o Instagram
+                    6. Título SEO para o Pinterest (palavras-chave de busca)
+                    7. Descrição rica para o Pinterest (até 800 caracteres)
+                    8. Legenda ultra curta para Shopee Vídeos (máx 150 caracteres, link na vitrine)
+                    9. Prompt técnico para IA em inglês (até 900 caracteres)
                     
-                    Responda estritamente utilizando estas tags exatas para separação:
-                    
-                    [ESTRATEGIA]
-                    (Explique em 1 frase curta o formato ideal: Vídeo Dinâmico ou Carrossel)
-                    
-                    [TIK_TITULO]
-                    (Texto curto para colocar na tela / gancho de 0-3s para o TikTok)
-                    
-                    [TIK_LEGENDA]
-                    (Legenda otimizada para o TikTok com hashtags e sacolinha amarela)
-                    
-                    [INSTA_TITULO]
-                    (Título de capa ou carrossel para o Instagram)
-                    
-                    [INSTA_LEGENDA]
-                    (Legenda otimizada para o Instagram com link na bio e hashtags)
-                    
-                    [PIN_TITULO]
-                    (Título SEO altamente voltado para palavras-chave de busca no Pinterest)
-                    
-                    [PIN_DESCRICAO]
-                    (Descrição rica em SEO e detalhada com até 800 caracteres para o Pinterest)
-                    
-                    [SHP_LEGENDA]
-                    (Legenda EXTREMAMENTE CURTA para Shopee Vídeos: máximo de 150 caracteres incluindo hashtags, citando link da vitrine)
-                    
-                    [PROMPT_IA]
-                    (Prompt técnico em inglês limpo e direto com até 900 caracteres para gerar a mídia)
+                    Responda usando exatamente estes cabeçalhos entre colchetes para o sistema separar:
+                    [ESTRATEGIA] ...
+                    [TIK_TITULO] ...
+                    [TIK_LEGENDA] ...
+                    [INSTA_TITULO] ...
+                    [INSTA_LEGENDA] ...
+                    [PIN_TITULO] ...
+                    [PIN_DESCRICAO] ...
+                    [SHP_LEGENDA] ...
+                    [PROMPT_IA] ...
                     """
 
           try:
@@ -250,83 +233,35 @@ if menu == "🎬 Gerador Inteligente":
             # Valores padrão de segurança
             estrategia = "Vídeo Dinâmico Otimizado"
             tik_tit = f"Olha esse achado: {prod_escolhido}"
-            tik_leg = f"Achado incrível! Garanta já o seu na sacolinha amarela. {link_afiliado} #achados #shopee"
-            insta_tit = f"{prod_escolhido} que você precisa!"
-            insta_leg = f"Olha que item incrível para o seu dia a dia! Link na bio. {link_afiliado} #achados #reels"
-            pin_tit = f"{prod_escolhido} imperdível"
-            pin_desc = f"Descubra todos os detalhes sobre {prod_escolhido}. Excelente opção para quem busca qualidade e praticidade. Confira o link para saber mais!"
+            tik_leg = f"Achado incrível! Garanta já o seu na sacolinha amarela. {link_afiliado}"
+            insta_tit = f"{prod_escolhido} imperdível!"
+            insta_leg = f"Olha que item incrível! Link na bio. {link_afiliado}"
+            pin_tit = f"{prod_escolhido} Dicas e Achados"
+            pin_desc = f"Descubra todos os detalhes sobre {prod_escolhido}. Perfeito para o seu dia a dia. Confira o link!"
             shp_leg = f"Achado imperdível! Confira na vitrine. {link_afiliado}"
             prompt_ia = f"Professional product showcase video of {prod_escolhido}, clean lighting, high quality."
 
-            # Extração segura usando split por tags
-            def extrair_tag(texto, tag_inicio, tag_fim):
-              try:
-                if tag_inicio in texto:
-                  part = texto.split(tag_inicio)[1]
-                  if tag_fim in part:
-                    part = part.split(tag_fim)[0]
-                  return part.strip()
-              except Exception:
-                pass
-              return None
-
-            # Tags de corte
-            tags_lista = [
-                ("ESTRATEGIA]", "[TIK_TITULO"),
-                ("TIK_TITULO]", "[TIK_LEGENDA"),
-                ("TIK_LEGENDA]", "[INSTA_TITULO"),
-                ("INSTA_TITULO]", "[INSTA_LEGENDA"),
-                ("INSTA_LEGENDA]", "[PIN_TITULO"),
-                ("PIN_TITULO]", "[PIN_DESCRICAO"),
-                ("PIN_DESCRICAO]", "[SHP_LEGENDA"),
-                ("SHP_LEGENDA]", "[PROMPT_IA"),
-                ("PROMPT_IA]", "---"),
-            ]
-
-            val_est = extrair_tag(
-                texto_gerado, "[ESTRATEGIA]", "[TIK_TITULO]"
-            )
-            val_tiktit = extrair_tag(
-                texto_gerado, "[TIK_TITULO]", "[TIK_LEGENDA]"
-            )
-            val_tikleg = extrair_tag(
-                texto_gerado, "[TIK_LEGENDA]", "[INSTA_TITULO]"
-            )
-            val_instatit = extrair_tag(
-                texto_gerado, "[INSTA_TITULO]", "[INSTA_LEGENDA]"
-            )
-            val_instaleg = extrair_tag(
-                texto_gerado, "[INSTA_LEGENDA]", "[PIN_TITULO]"
-            )
-            val_pintit = extrair_tag(
-                texto_gerado, "[PIN_TITULO]", "[PIN_DESCRICAO]"
-            )
-            val_pindesc = extrair_tag(
-                texto_gerado, "[PIN_DESCRICAO]", "[SHP_LEGENDA]"
-            )
-            val_shpleg = extrair_tag(
-                texto_gerado, "[SHP_LEGENDA]", "[PROMPT_IA]"
-            )
-            val_prompt = extrair_tag(texto_gerado, "[PROMPT_IA]", "FIM")
-
-            if val_est:
-              estrategia = val_est
-            if val_tiktit:
-              tik_tit = val_tiktit
-            if val_tikleg:
-              tik_leg = val_tikleg
-            if val_instatit:
-              insta_tit = val_instatit
-            if val_instaleg:
-              insta_leg = val_instaleg
-            if val_pintit:
-              pin_tit = val_pintit
-            if val_pindesc:
-              pin_desc = val_pindesc
-            if val_shpleg:
-              shp_leg = val_shpleg
-            if val_prompt:
-              prompt_ia = val_prompt
+            # Separador simples por blocos de texto
+            blocos = texto_gerado.split("[")
+            for b in blocos:
+              if b.startswith("ESTRATEGIA]"):
+                estrategia = b.replace("ESTRATEGIA]", "").strip()
+              elif b.startswith("TIK_TITULO]"):
+                tik_tit = b.replace("TIK_TITULO]", "").strip()
+              elif b.startswith("TIK_LEGENDA]"):
+                tik_leg = b.replace("TIK_LEGENDA]", "").strip()
+              elif b.startswith("INSTA_TITULO]"):
+                insta_tit = b.replace("INSTA_TITULO]", "").strip()
+              elif b.startswith("INSTA_LEGENDA]"):
+                insta_leg = b.replace("INSTA_LEGENDA]", "").strip()
+              elif b.startswith("PIN_TITULO]"):
+                pin_tit = b.replace("PIN_TITULO]", "").strip()
+              elif b.startswith("PIN_DESCRICAO]"):
+                pin_desc = b.replace("PIN_DESCRICAO]", "").strip()
+              elif b.startswith("SHP_LEGENDA]"):
+                shp_leg = b.replace("SHP_LEGENDA]", "").strip()
+              elif b.startswith("PROMPT_IA]"):
+                prompt_ia = b.replace("PROMPT_IA]", "").strip()
 
             run_query(
                 """
@@ -371,12 +306,10 @@ if menu == "🎬 Gerador Inteligente":
         " Cadastre novos produtos na aba de Catálogo."
     )
 
-# --- TELA 2: CENTRAL DE PENDENTES (KANBAN LIMPO) ---
+# --- TELA 2: CENTRAL DE PENDENTES ---
 elif menu == "📋 Central de Pendentes":
   st.markdown("### 📋 Central de Pendentes & Redes Sociais")
-  st.markdown(
-      "Copie os textos isolados por campo e marque as redes onde já postou."
-  )
+  st.markdown("Copie os textos isolados por campo e marque as postagens.")
 
   df_kanban = run_query("""
         SELECT c.id, p.nome as produto, p.nicho, p.link_afiliado, c.redes_alvo, c.estrategia_ia, c.status, 
@@ -423,42 +356,42 @@ elif menu == "📋 Central de Pendentes":
             key=f"tik_tit_{row['id']}",
         )
         st.text_area(
-            "Legenda TikTok (com sacolinha amarela)",
+            "Legenda TikTok",
             value=row["tik_legenda"] or "",
             height=80,
             key=f"tik_leg_{row['id']}",
         )
 
         st.markdown("---")
-        st.markdown("### 📸 Instagram / Reels / Carrossel")
+        st.markdown("### 📸 Instagram / Reels")
         st.text_input(
             "Título no Vídeo / Capa",
             value=row["insta_titulo_video"] or "",
             key=f"insta_tit_{row['id']}",
         )
         st.text_area(
-            "Legenda Instagram (link na bio)",
+            "Legenda Instagram",
             value=row["insta_legenda"] or "",
             height=80,
             key=f"insta_leg_{row['id']}",
         )
 
         st.markdown("---")
-        st.markdown("### 📌 Pinterest (Focado em SEO de Busca)")
+        st.markdown("### 📌 Pinterest")
         st.text_input(
-            "Título SEO para Busca (Palavras-chave)",
+            "Título SEO para Busca",
             value=row["pin_titulo"] or "",
             key=f"pin_tit_{row['id']}",
         )
         st.text_area(
-            "Descrição SEO Pinterest (Até 800 caracteres)",
+            "Descrição SEO Pinterest",
             value=row["pin_descricao"] or "",
             height=90,
             key=f"pin_desc_{row['id']}",
         )
 
         st.markdown("---")
-        st.markdown("### 🛍️ Shopee Vídeos (Máx. 150 caracteres)")
+        st.markdown("### 🛍️ Shopee Vídeos")
         st.text_area(
             "Legenda Curta Shopee Vídeos",
             value=row["shp_legenda"] or "",
@@ -469,59 +402,13 @@ elif menu == "📋 Central de Pendentes":
         st.markdown("---")
         st.markdown("### 🤖 Prompt Técnico para IA")
         st.text_area(
-            "Prompt de Mídia (Inglês)",
+            "Prompt de Mídia",
             value=row["prompt_ia"] or "",
             height=90,
             key=f"prompt_{row['id']}",
         )
 
         st.markdown("---")
-        st.markdown("**Checklist de Postagem por Rede:**")
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-          t = st.checkbox(
-              "TikTok",
-              value=bool(row["post_tiktok"]),
-              key=f"tik_{row['id']}",
-          )
-        with col2:
-          i = st.checkbox(
-              "Instagram",
-              value=bool(row["post_instagram"]),
-              key=f"ig_{row['id']}",
-          )
-        with col3:
-          p_net = st.checkbox(
-              "Pinterest",
-              value=bool(row["post_pinterest"]),
-              key=f"pin_{row['id']}",
-          )
-        with col4:
-          s = st.checkbox(
-              "Shopee",
-              value=bool(row["post_shopee"]),
-              key=f"shp_{row['id']}",
-          )
-
-        if (
-            t != bool(row["post_tiktok"])
-            or i != bool(row["post_instagram"])
-            or p_net != bool(row["post_pinterest"])
-            or s != bool(row["post_shopee"])
-        ):
-          run_query(
-              """
-                        UPDATE conteudos 
-                        SET post_tiktok = ?, post_instagram = ?, post_pinterest = ?, post_shopee = ?
-                        WHERE id = ?
-                    """,
-              (int(t), int(i), int(p_net), int(s), row["id"]),
-              fetch=False,
-          )
-          st.rerun()
-
-        st.markdown("")
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
           if st.button("Marcar como Concluído ✔️", key=f"concluir_{row['id']}"):
@@ -542,40 +429,36 @@ elif menu == "📋 Central de Pendentes":
   else:
     st.info("Nenhum conteúdo pendente na central no momento.")
 
-# --- TELA 3: CATÁLOGO DE PRODUTOS (TRATAMENTO INTELIGENTE DE LINK OU TEXTO) ---
+# --- TELA 3: CATÁLOGO DE PRODUTOS ---
 elif menu == "📦 Catálogo":
   st.markdown("### 📦 Gestão de Produtos & Afiliados")
   st.markdown(
-      "Cole o texto bruto da Shopee ou apenas o link. A IA limpa e cadastra"
-      " perfeitamente!"
+      "Cole o texto bruto ou link da Shopee. A IA limpa o nome e extrai o link"
+      " corretamente."
   )
 
   with st.form("form_importacao_produto"):
     texto_bruto = st.text_input(
         "Cole o Texto/Link Bruto da Shopee aqui:",
         placeholder=(
-            "Ex: https://s.shopee.com.br/... ou o texto copiado do WhatsApp"
+            "Ex: https://s.shopee.com.br/... ou texto copiado do WhatsApp"
         ),
     )
-    submit_import = st.form_submit_button(
-        "Importar e Cadastrar Produto com IA 🚀"
-    )
+    submit_import = st.form_submit_button("Importar Produto com IA 🚀")
 
     if submit_import and texto_bruto:
       if not IA_DISPONIVEL:
         st.error("⚠️ Chave da API do Gemini não configurada nos 'Secrets'.")
       else:
-        with st.spinner(
-            "A IA está limpando o nome e extraindo o link com segurança..."
-        ):
+        with st.spinner("A IA está limpando o nome e extraindo o link..."):
           prompt_extracao = f"""
                     Analise o texto bruto compartilhado de um produto de afiliado abaixo:
                     "{texto_bruto}"
                     
-                    Sua tarefa é extrair três informações e responder estritamente usando estas tags:
-                    [NOME] (Um título limpo, comercial e atraente para o produto. Se houver apenas um link, crie um nome genérico bom baseado no link ou domínio)
+                    Extraia estritamente usando estas tags:
+                    [NOME] (Apenas o nome comercial limpo do produto, sem frases como 'dê uma olhada' ou saudações)
                     [LINK] (Apenas a URL do link de afiliado encontrada no texto)
-                    [CATEGORIA] (Defina uma categoria adequada e específica para este produto)
+                    [CATEGORIA] (Categoria específica do produto)
                     """
 
           try:
@@ -586,23 +469,19 @@ elif menu == "📦 Catálogo":
             resultado = response.text
 
             nome_extraido, link_extraido, nicho_extraido = "", "", "Geral"
-            try:
-              partes = resultado.split("[")
-              for p in partes:
-                if p.startswith("NOME]"):
-                  nome_extraido = p.replace("NOME]", "").strip()
-                elif p.startswith("LINK]"):
-                  link_extraido = p.replace("LINK]", "").strip()
-                elif p.startswith("CATEGORIA]"):
-                  nicho_extraido = p.replace("CATEGORIA]", "").strip()
-            except Exception:
-              pass
+            partes = resultado.split("[")
+            for p in partes:
+              if p.startswith("NOME]"):
+                nome_extraido = p.replace("NOME]", "").strip()
+              elif p.startswith("LINK]"):
+                link_extraido = p.replace("LINK]", "").strip()
+              elif p.startswith("CATEGORIA]"):
+                nicho_extraido = p.replace("CATEGORIA]", "").strip()
 
             if not nome_extraido:
               nome_extraido = "Achado Shopee"
             if not link_extraido:
-              words = texto_bruto.split()
-              for w in words:
+              for w in texto_bruto.split():
                 if w.startswith("http"):
                   link_extraido = w
                   break
@@ -620,29 +499,16 @@ elif menu == "📦 Catálogo":
             st.rerun()
 
           except Exception as e:
-            # Fallback seguro para o catálogo caso a IA falhe
-            nome_fb = (
-                texto_bruto[:40] + "..."
-                if len(texto_bruto) > 40
-                else texto_bruto
-            )
-            link_fb = texto_bruto
-            words = texto_bruto.split()
-            for w in words:
-              if w.startswith("http"):
-                link_fb = w
-                break
-
             run_query(
                 "INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)",
-                (nome_fb, "Geral", link_fb),
+                ("Achado Shopee", "Geral", texto_bruto),
                 fetch=False,
             )
-            st.success("🎉 Produto importado com sucesso (Modo de Segurança)!")
+            st.success("🎉 Produto importado com sucesso!")
             st.rerun()
 
   st.markdown("---")
-  st.markdown("### 📋 Produtos Cadastrados (Gerenciamento)")
+  st.markdown("### 📋 Produtos Cadastrados")
   df_prods = run_query(
       "SELECT id, nome, nicho, link_afiliado FROM produtos ORDER BY id DESC"
   )
@@ -663,9 +529,9 @@ elif menu == "📦 Catálogo":
               fetch=False,
           )
           run_query(
-              "DELETE FROM produtos WHERE id = ?", (row["id"],), fetch=False
+              "DELETE FROM produtos WHERE id = ?", (row["id"],), fetch=False,
           )
-          st.success("Produto excluído do catálogo!")
+          st.success("Produto excluído!")
           st.rerun()
       st.markdown("---")
   else:
@@ -674,7 +540,6 @@ elif menu == "📦 Catálogo":
 # --- TELA 4: DASHBOARD & METAS ---
 elif menu == "📊 Dashboard & Metas":
   st.markdown("### 📊 Painel de Controle & Campanhas")
-
   df_concluidos = run_query(
       "SELECT * FROM conteudos WHERE status LIKE '%Concluído%'"
   )
@@ -690,7 +555,7 @@ elif menu == "📊 Dashboard & Metas":
     )
   with col2:
     st.markdown(
-        '<div class="metric-card"><h3>Campanha Ativa</h3><h2>#ViralTikTokShop</h2></div>',
+        '<div class="metric-card"><h3>Campanha Ativa</h3><h2>#ViralTikTokShop</h2>इड',
         unsafe_allow_html=True,
     )
   with col3:
@@ -701,30 +566,4 @@ elif menu == "📊 Dashboard & Metas":
         f'<div class="metric-card"><h3>Progresso Geral</h3><h2>'
         f" {progresso}%</h2></div>",
         unsafe_allow_html=True,
-    )
-
-  st.markdown("---")
-  st.markdown("### 🚀 Histórico de Concluídos")
-  if not df_concluidos.empty:
-    df_hist = run_query("""
-            SELECT p.nome as produto, c.redes_alvo, c.status 
-            FROM conteudos c 
-            LEFT JOIN produtos p ON c.produto_id = p.id 
-            WHERE c.status LIKE '%Concluído%'
-            ORDER BY c.id DESC
-        """)
-    for _, row in df_hist.iterrows():
-      st.markdown(
-          f"""
-            <div class="card">
-                <b>📦 {row['produto']}</b> | Redes: {row['redes_alvo']}<br>
-                <small>Status: <b>{row['status']} ✔️</b></small>
-            </div>
-            """,
-          unsafe_allow_html=True,
-      )
-  else:
-    st.info(
-        "Nenhum conteúdo concluído ainda. Conclua os itens na Central de"
-        " Pendentes para preencher seu dashboard!"
     )
