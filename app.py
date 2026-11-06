@@ -72,7 +72,7 @@ def run_query(query, params=(), fetch=True):
   conn.commit()
   conn.close()
 
-# --- CONFIGURAÇÃO DA IA (GEMINI API) ---
+# --- CONFIGURAÇÃO DA IA (GEMINI API) Opcional ---
 IA_DISPONIVEL = False
 try:
   from google import genai
@@ -82,36 +82,93 @@ try:
 except Exception:
   pass
 
-# --- MOTOR DE INTELIGÊNCIA "SEM IA" (TEMPLATES FORTES) ---
-def gerar_textos_offline(nome, link, categoria):
-  # Variações automáticas para não ficar tudo igual
-  ganchos_tik = [
-      f"{nome} vale a pena?",
-      f"Testei o famoso {nome}!",
-      f"Achado da Shopee que você precisa ver:",
-      f"Por que ninguém me falou disso antes?"
-  ]
-  
-  titulos_insta = [
-      f"{nome} - Você precisa disso!",
-      f"O melhor achado de {categoria} ✨",
-      f"Já conhecia o {nome}?",
-      f"Dica de ouro pra você 💡"
-  ]
+# --- 🧠 MOTOR 1: EXTRATOR OFFLINE (LIMPEZA DE TEXTO DO WHATSAPP) ---
+def limpar_texto_shopee(texto_bruto):
+    link_puro = texto_bruto
+    nome_puro = texto_bruto
 
-  tik_tit = random.choice(ganchos_tik)
-  tik_leg = f"😱 Olha que achado incrível! Já garante o seu na sacolinha amarela 👇\n{link} #achados #shopee #dicas"
-  
-  insta_tit = random.choice(titulos_insta)
-  insta_leg = f"✨ Item imperdível para o seu dia a dia!\n🔗 Link na bio para garantir o seu.\n{link} #achados #reels"
-  
-  pin_tit = f"{nome} - Melhor Oferta e Dicas"
-  pin_desc = f"Descubra todos os detalhes sobre {nome}. A melhor opção de {categoria} para quem busca praticidade e qualidade. Confira o link e aproveite: {link}"
-  
-  shp_leg = f"Achado imperdível! Confira na vitrine. {link}"
-  prompt_ia = f"Professional product showcase video of {nome}, clean lighting, high resolution, 4k"
-  
-  return "Vídeo Dinâmico (Review / Unboxing)", tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
+    # Isola o link e remove parâmetros de rastreamento de afiliados sujos (?share_channel...)
+    palavras = texto_bruto.split()
+    for p in palavras:
+        if p.startswith("http"):
+            link_puro = p.split("?")[0] if "?" in p else p
+            break
+            
+    # Limpeza bruta do texto padrão da Shopee
+    if "Dê uma olhada em " in nome_puro:
+        nome_puro = nome_puro.split("Dê uma olhada em ")[1]
+    if " por R$" in nome_puro:
+        nome_puro = nome_puro.split(" por R$")[0]
+    if "Compre na Shopee agora!" in nome_puro:
+        nome_puro = nome_puro.replace("Compre na Shopee agora!", "")
+    
+    nome_puro = nome_puro.replace(link_puro, "").strip()
+    
+    # Prevenção extra
+    if not nome_puro or len(nome_puro) < 3:
+        nome_puro = "Achado Imperdível Shopee"
+        
+    return nome_puro, link_puro
+
+# --- 🧠 MOTOR 2: A MEGA ENCICLOPÉDIA DE NICHOS ---
+ENCICLOPEDIA = {
+    "Casa & Decoração": {
+        "ganchos_tik": ["Sua casa precisa desse achado da Shopee:", "O segredo para uma casa organizada:", "Comprei o item mais viral da Shopee:"],
+        "titulos_insta": ["Decoração Inteligente ✨", "Achadinho para o seu Lar 🏡", "Você precisa ver isso!"],
+        "tags": "#donadecasa #dicaspracasa #decoracao #achadinhosshopee #shopeebrasil #casaorganizada"
+    },
+    "Eletrônicos": {
+        "ganchos_tik": ["Tecnologia que facilita a vida:", "Seu setup precisa disso urgentemente:", "O melhor custo-benefício da Shopee:"],
+        "titulos_insta": ["Tech Dica do Dia 💻", "Eletrônico Indispensável ⚡", "O Mais Desejado da Shopee"],
+        "tags": "#tecnologia #eletronicos #setupgamer #dicastech #achadosshopee #shopeebr"
+    },
+    "Beleza & Cuidado": {
+        "ganchos_tik": ["O segredo de beleza que ninguém te conta:", "Testando o viral de beleza da Shopee:", "Seu autocuidado elevado de nível:"],
+        "titulos_insta": ["Dica de Ouro de Beleza ✨", "Skin Care & Cuidado 💄", "O Favorito do Momento"],
+        "tags": "#dicasdebeleza #autocuidado #maquiagem #skincarebrasil #achadosshopee"
+    },
+    "Moda": {
+        "ganchos_tik": ["Look de milhões gastando pouco:", "A peça chave que faltava no seu guarda-roupa:", "Provando roupas da Shopee:"],
+        "titulos_insta": ["Look Inspiração 👗", "Moda Acessível ✨", "Estilo com Economia"],
+        "tags": "#lookdodia #modafeminina #estilo #roupasshopee #achadinhos"
+    },
+    "Infantil": {
+        "ganchos_tik": ["Mães, vocês precisam ver esse achado:", "Diversão e praticidade para as crianças:", "O melhor presente infantil da Shopee:"],
+        "titulos_insta": ["Dica de Mãe 👶", "Para os Pequenos 🧸", "Achado Infantil Incrível"],
+        "tags": "#maternidadereal #dicasdemae #brinquedos #achadosinfantis #shopeebr"
+    },
+    "Geral": {
+        "ganchos_tik": ["Você não vai acreditar nesse achado:", "Por que ninguém me avisou disso antes?", "Comprei o item mais útil da Shopee:"],
+        "titulos_insta": ["Achado Imperdível 🚀", "Você precisa ter isso ✨", "O Melhor Custo-Benefício"],
+        "tags": "#achados #achadinhos #shopeebrasil #comprasshopee #dicas"
+    }
+}
+
+def gerar_textos_enciclopedia(nome, link, categoria):
+    # Se a categoria não estiver no dicionário, usa a Geral
+    cat_data = ENCICLOPEDIA.get(categoria, ENCICLOPEDIA["Geral"])
+    
+    tags = cat_data["tags"]
+    
+    tik_tit = random.choice(cat_data["ganchos_tik"])
+    tik_leg = f"😱 Olha que achado incrível! Já garante o seu na sacolinha amarela 👇\n{link}\n\n{tags}"
+    
+    insta_tit = f"{random.choice(cat_data['titulos_insta'])} - {nome[:30]}"
+    insta_leg = f"✨ Descubra como o {nome} pode mudar o seu dia!\n\n🔗 Link na bio para garantir o seu com desconto.\n\n{tags}"
+    
+    pin_tit = f"{nome[:60]} - Melhor Opção e Dicas"
+    pin_desc = f"Descubra todos os detalhes sobre {nome}. A opção ideal de {categoria} para quem busca praticidade. Confira o link e aproveite a oferta: {link}\n{tags}"
+    
+    # Shopee Vídeo exige máximo de 150 caracteres. O nome não pode ser gigante.
+    nome_curto = nome[:30] + "..." if len(nome) > 30 else nome
+    shp_leg = f"Achado imperdível! {nome_curto} Confira na vitrine 👇\n{link} #achados"
+    if len(shp_leg) > 150:
+        shp_leg = f"Achado imperdível! Vitrine 👇\n{link} #achados"
+        
+    prompt_ia = f"Professional product showcase video of {nome}, clean lighting, aesthetic lifestyle background, 4k"
+    
+    return "Vídeo Dinâmico (Review / Unboxing)", tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
+
 
 # --- NAVEGAÇÃO SUPERIOR ---
 st.title("🚀 Central Achados do Felipe")
@@ -125,7 +182,7 @@ st.markdown("---")
 
 # --- TELA 1: GERADOR DE ROTEIROS ---
 if menu == "🎬 Gerador de Roteiros":
-  st.markdown("### 🎬 Gerador Estratégico (Modo Instantâneo)")
+  st.markdown("### 🎬 Gerador Estratégico (Modo Enciclopédia)")
 
   df_produtos = run_query("SELECT id, nome, nicho, link_afiliado FROM produtos WHERE id NOT IN (SELECT produto_id FROM conteudos WHERE produto_id IS NOT NULL)")
 
@@ -133,23 +190,24 @@ if menu == "🎬 Gerador de Roteiros":
     with st.form("form_gerador"):
       prod_escolhido = st.selectbox("Selecione o Produto", df_produtos["nome"].tolist())
       
-      # Opcional para tentar usar a IA se quiser
-      usar_ia = st.checkbox("🤖 Tentar reescrever textos com Inteligência Artificial (Pode falhar se o limite exceder)", value=False)
+      usar_ia = st.checkbox("🤖 Reescrever usando IA Gemini (Ignorar Enciclopédia local)", value=False)
       
-      btn_gerar = st.form_submit_button("Gerar Pacote 🚀")
+      btn_gerar = st.form_submit_button("Gerar Pacote Estratégico 🚀")
 
       if btn_gerar:
         prod_row = df_produtos.loc[df_produtos["nome"] == prod_escolhido].iloc[0]
         prod_id = int(prod_row["id"])
-        link_af = str(prod_row["link_afiliado"]) if pd.notna(prod_row["link_afiliado"]) else "Link aqui"
+        link_af = str(prod_row["link_afiliado"])
         nicho = str(prod_row["nicho"])
 
-        estrategia, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia = gerar_textos_offline(prod_escolhido, link_af, nicho)
+        # Roda o motor da enciclopédia instantaneamente
+        estrategia, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia = gerar_textos_enciclopedia(prod_escolhido, link_af, nicho)
 
+        # Se o usuário marcou a caixinha e a IA está ligada, sobrescreve.
         if usar_ia and IA_DISPONIVEL:
-          with st.spinner("Conectando com a IA..."):
+          with st.spinner("Chamando a IA..."):
             try:
-              prompt = f"Gere textos para afiliado do produto '{prod_escolhido}' (Link: {link_af}). Responda EXATAMENTE neste formato:\nTIK_TITULO: Gancho\nTIK_LEGENDA: Legenda com sacolinha e link\nINSTA_TITULO: Titulo\nINSTA_LEGENDA: Legenda com link na bio\nPIN_TITULO: Titulo SEO\nPIN_DESCRICAO: Descricao SEO\nSHP_LEGENDA: Legenda curta"
+              prompt = f"Gere textos para afiliado. Produto: '{prod_escolhido}'. Link: {link_af}. Categoria: {nicho}. Use as melhores hashtags.\nResponda EXATAMENTE neste formato:\nTIK_TITULO: Gancho\nTIK_LEGENDA: Legenda com sacolinha, link e hashtags\nINSTA_TITULO: Titulo\nINSTA_LEGENDA: Legenda com link na bio e hashtags\nPIN_TITULO: Titulo SEO\nPIN_DESCRICAO: Descricao rica\nSHP_LEGENDA: Legenda super curta com link\nPROMPT_IA: Prompt em inglês"
               res = client.models.generate_content(model="gemini-1.5-flash", contents=prompt).text
               
               for l in res.split("\n"):
@@ -164,9 +222,10 @@ if menu == "🎬 Gerador de Roteiros":
                   elif "PIN_TITULO" in ch: pin_tit = val
                   elif "PIN_DESCRICAO" in ch: pin_desc = val
                   elif "SHP_LEGENDA" in ch: shp_leg = val
+                  elif "PROMPT_IA" in ch: prompt_ia = val
               st.toast("Textos aprimorados pela IA!")
             except Exception:
-              st.toast("A IA falhou. Usando textos de alta conversão salvos no sistema (Modo Offline).")
+              st.toast("Falha na IA. Usando a Enciclopédia de alta conversão offline.")
 
         run_query(
             "INSERT INTO conteudos (produto_id, estrategia_ia, tik_titulo_video, tik_legenda, insta_titulo_video, insta_legenda, pin_titulo, pin_descricao, shp_legenda, prompt_ia, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendente 🟡')",
@@ -193,11 +252,11 @@ elif menu == "📋 Central de Pendentes":
         st.markdown(f"🤖 **Formato:** {row['estrategia_ia']}")
         
         st.text_input("TikTok Gancho", value=row["tik_titulo_video"] or "", key=f"tt_{row['id']}")
-        st.text_area("TikTok Legenda", value=row["tik_legenda"] or "", height=70, key=f"tl_{row['id']}")
+        st.text_area("TikTok Legenda", value=row["tik_legenda"] or "", height=90, key=f"tl_{row['id']}")
         st.text_input("Insta Capa", value=row["insta_titulo_video"] or "", key=f"it_{row['id']}")
-        st.text_area("Insta Legenda", value=row["insta_legenda"] or "", height=70, key=f"il_{row['id']}")
+        st.text_area("Insta Legenda", value=row["insta_legenda"] or "", height=90, key=f"il_{row['id']}")
         st.text_input("Pinterest Título", value=row["pin_titulo"] or "", key=f"pt_{row['id']}")
-        st.text_area("Pinterest Descrição", value=row["pin_descricao"] or "", height=70, key=f"pd_{row['id']}")
+        st.text_area("Pinterest Descrição", value=row["pin_descricao"] or "", height=90, key=f"pd_{row['id']}")
         st.text_area("Shopee Legenda", value=row["shp_legenda"] or "", height=60, key=f"sl_{row['id']}")
         
         c1, c2 = st.columns(2)
@@ -212,31 +271,33 @@ elif menu == "📋 Central de Pendentes":
   else:
     st.info("Nenhum conteúdo pendente.")
 
-# --- TELA 3: CATÁLOGO MANUAL 100% GARANTIDO ---
+# --- TELA 3: CATÁLOGO INTELIGENTE E OFFLINE ---
 elif menu == "📦 Catálogo":
   st.markdown("### 📦 Catálogo de Produtos")
-  st.markdown("Cadastre seus produtos rapidamente. **Sem IA, sem falhas.**")
+  st.markdown("O sistema limpa nomes gigantes, corta preços e rastreadores sozinho.")
 
   with st.form("form_cat_manual"):
-    nome_prod = st.text_input("Nome do Produto:", placeholder="Ex: Caixa de Som JBL Boombox 4")
-    link_prod = st.text_input("Link de Afiliado:", placeholder="https://s.shopee...")
-    nicho_prod = st.selectbox("Categoria:", ["Geral", "Casa", "Eletrônicos", "Moda", "Beleza", "Infantil"])
+    texto_zap = st.text_area("Cole a mensagem do WhatsApp ou Link Shopee:", placeholder="Dê uma olhada em Caixa de som por R$100. Compre aqui: https://...")
+    nicho_prod = st.selectbox("Categoria (Importante para a Enciclopédia):", ["Casa & Decoração", "Eletrônicos", "Beleza & Cuidado", "Moda", "Infantil", "Geral"])
     
-    enviar = st.form_submit_button("Salvar Produto 🚀")
+    enviar = st.form_submit_button("Processar e Salvar Produto 🚀")
 
-    if enviar and nome_prod and link_prod:
-      run_query("INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)", (nome_prod, nicho_prod, link_prod), fetch=False)
-      st.success(f"Produto '{nome_prod}' cadastrado na hora!")
+    if enviar and texto_zap:
+      # Aciona o motor 1 para limpar a sujeira do texto
+      nome_limpo, link_limpo = limpar_texto_shopee(texto_zap)
+      
+      run_query("INSERT INTO produtos (nome, nicho, link_afiliado) VALUES (?, ?, ?)", (nome_limpo, nicho_prod, link_limpo), fetch=False)
+      st.success(f"Produto isolado e cadastrado: {nome_limpo}")
       st.rerun()
     elif enviar:
-      st.warning("Preencha o nome e o link para salvar.")
+      st.warning("Cole o texto para salvar.")
 
   st.markdown("---")
   df_p = run_query("SELECT id, nome FROM produtos ORDER BY id DESC")
   if not df_p.empty:
     for _, row in df_p.iterrows():
       c1, c2 = st.columns([4, 1])
-      with c1: st.markdown(f"**{row['nome']}**")
+      with c1: st.markdown(f"**📦 {row['nome']}**")
       with c2:
         if st.button("Excluir 🗑️", key=f"dp_{row['id']}"):
           run_query("DELETE FROM conteudos WHERE produto_id = ?", (row['id'],), fetch=False)
