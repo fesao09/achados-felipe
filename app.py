@@ -132,7 +132,6 @@ if menu == "🎬 Gerador de Roteiros":
     )
 
     if st.button("Gerar Pacote com IA 🚀") and IA_DISPONIVEL:
-      # Usando um container de status para mostrar exatamente onde está
       status_box = st.status("🔄 Conectando com a IA...", expanded=True)
 
       try:
@@ -164,7 +163,6 @@ if menu == "🎬 Gerador de Roteiros":
 
         status_box.update(label="Salvando na Central de Pendentes...", state="running")
 
-        # Valores padrão de segurança
         estrategia = "Vídeo Dinâmico"
         tik_tit = f"Olha esse achado: {prod_escolhido}"
         tik_leg = f"Achado incrível! Garanta na sacolinha amarela. {link_afiliado}"
@@ -236,10 +234,7 @@ if menu == "🎬 Gerador de Roteiros":
             f"⚠️ Ocorreu um erro ao gerar o roteiro: {e}. Tente novamente."
         )
   else:
-    st.info(
-        "🎉 Todos os produtos cadastrados já tiveram seus roteiros gerados ou"
-        " o catálogo está vazio!"
-    )
+    st.info("🎉 Todos os produtos cadastrados já tiveram seus roteiros gerados!")
 
 # --- TELA 2: CENTRAL DE PENDENTES ---
 elif menu == "📋 Central de Pendentes":
@@ -405,7 +400,7 @@ elif menu == "📦 Catálogo":
       with c1:
         st.markdown(f"**{row['nome']}**")
       with c2:
-        if st.button("Excluir 🗑️", `key`=f"dp_{row['id']}"):
+        if st.button("Excluir 🗑️", key=f"dp_{row['id']}"):
           run_query(
               "DELETE FROM conteudos WHERE produto_id = ?",
               (row['id'],),
