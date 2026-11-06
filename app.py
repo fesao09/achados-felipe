@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="Achados do Felipe",
     page_icon="🔎", 
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # Estilização CSS (Dark Mode com Laranja Vibrante)
@@ -45,26 +45,23 @@ st.markdown(
         text-align: center; 
         border-bottom: 4px solid #FF4500; 
     }
+    
+    /* Esconde o botão de abrir a barra lateral para ficar 100% limpo */
+    [data-testid="collapsedControl"] { display: none; }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# --- MENU LATERAL (LOGO REDONDO) ---
-with st.sidebar:
-    try:
-        st.image("logo.png", use_container_width=True)
-    except:
-        pass
-    st.markdown("### 🚀 Central de Automação")
-    st.markdown("Motor Offline-First")
-
 # --- CABEÇALHO PRINCIPAL (BANNER RETANGULAR) ---
 try:
-    st.image("banner.png", use_container_width=True)
+    st.image("banner.jpg", use_container_width=True)
 except:
-    st.title("Central Achados do Felipe")
-    st.markdown("<p style='color: #FF7F50; margin-top: -15px;'>As Melhores Ofertas</p>", unsafe_allow_html=True)
+    try:
+        st.image("banner.png", use_container_width=True)
+    except:
+        st.title("Central Achados do Felipe")
+        st.markdown("<p style='color: #FF7F50; margin-top: -15px;'>As Melhores Ofertas</p>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -74,7 +71,6 @@ menu = st.radio(
     horizontal=True,
 )
 st.markdown("---")
-
 
 # --- SISTEMA DE ARQUIVOS: CÉREBRO JSON (ENCICLOPÉDIA OFFLINE) ---
 CEREBRO_FILE = "cerebro.json"
