@@ -1,192 +1,143 @@
-# -*- coding: utf-8 -*-
-"""
-Achados do Felipe - Cérebro V3 Engine Oficial (Completo e Expandido)
-Autor: Felipe de Oliveira Gonçalves (@achadosfelipe01)
-Descrição: Motor de inteligência integrando todas as categorias e subcategorias
-mapeadas do Pinterest para curadoria e automação de links da Shopee.
-"""
-
-import json
-import os
-
-
-class CerebroAchadosFelipeV3Completo:
-
-  def __init__(self, json_path='pinterest_achados_felipe.json'):
-    self.json_path = json_path
-    self.base_dados = self.carregar_dados()
-
-    # Mapeamento completo e exaustivo de categorias baseado no arquivo do Pinterest
-    self.categorias_mapeadas = {
-        'Bebés e Maternidade': [
-            'fralda',
-            'pampers',
-            'pom pom',
-            'turma da mônica',
-            'personal',
-            'toalha umedecida',
-            'bebe',
-            'infantil',
-            'trocador',
-            'enxoval',
-        ],
-        'Brinquedos e Jogos Educativos': [
-            'brinquedo',
-            'montessori',
-            'bluey',
-            'boneca',
-            'boneco',
-            'livro',
-            'jogo',
-            'spidey',
-            'hasbro',
-            'peppa',
-            'gabby',
-            'bicicleta',
-            'barraca',
-            'tenda',
-        ],
-        'Skincare, Beleza & Perfumaria': [
-            'cerave',
-            'nivea',
-            'principia',
-            'creamy',
-            'carmed',
-            'dove',
-            'oral-b',
-            'colgate',
-            'desodorante',
-            'shampoo',
-            'condicionador',
-            'wella',
-            'perfume',
-            'kaiak',
-            'natura',
-            'skincare',
-            'protetor',
-        ],
-        'Casa, Limpeza e Organização': [
-            'omo',
-            'surf',
-            'coala',
-            'mon bijou',
-            'cif',
-            'lixeira',
-            'purificador',
-            'consul',
-            'ventilador',
-            'mondial',
-            'amaciante',
-            'limpeza',
-            'organizador',
-            'mouse pad',
-        ],
-        'Moda, Streetwear, Lingerie & K-Pop': [
-            'camisa',
-            'camisola',
-            'bts',
-            'army',
-            'anime',
-            'roupa',
-            'k-pop',
-            'streetwear',
-            'baw',
-            ' lingerie',
-            'calcinha',
-            'sensual',
-            'fantasias',
-            'halloween',
-        ],
-        'Snacks, Café & Suplementação': [
-            'café',
-            'dolce gusto',
-            'kopenhagen',
-            'italle',
-            'milka',
-            'chocolate',
-            'creatina',
-            'whey',
-            'glutamina',
-            'dadinho',
-            'amendoim',
-            'suplemento',
-        ],
+{
+    "configuracao_geral": {
+        "versao": "5.0",
+        "objetivo": "Matriz de inteligência hiper-detalhada e extensível baseada em todo o ecossistema de Pins do Pinterest do Felipe."
+    },
+    "categorias_e_regras": {
+        "Maternidade & Enxoval de Bebê": {
+            "foco_atributos": ["pacotes jumbos de fraldas", "toalhas umedecidas em volume", "kits de higiene recém-nascido"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Kit Econômico e Enxoval de Bebê",
+                "gatilhos_descricao": ["Economia real no enxoval e rotina diária."],
+                "chamada_acao": "Garanta o seu pacote promocional direto na Shopee: {link}"
+            },
+            "tags_obrigatorias": ["#achadosshopee", "#maternidade", "#mamae", "#fraldas", "#dicaparamães"]
+        },
+        "Fraldas & Toalhinhas Umedecidas": {
+            "foco_atributos": ["Pampers", "Pom Pom", "Turma da Mônica", "Personal", "absorção prolongada"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Pacote Promocional de Fraldas",
+                "gatilhos_descricao": ["O melhor custo-benefício por unidade para o dia a dia."],
+                "chamada_acao": "Aproveite o desconto na sacolinha oficial: {link}"
+            },
+            "tags_obrigatorias": ["#fraldas", "#pampers", "#pompom", "#achadosshopee", "#bebe"]
+        },
+        "Brinquedos Educativos & Montessori": {
+            "foco_atributos": ["método montessori", "estímulo cognitivo", "encaixes e madeira"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Brinquedo Educativo e Lúdico",
+                "gatilhos_descricao": ["Estimule o aprendizado das crianças longe das telas."],
+                "chamada_acao": "Confira o melhor preço no link oficial: {link}"
+            },
+            "tags_obrigatorias": ["#brinquedos", "#montessori", "#criancas", "#achadinhosshopee"]
+        },
+        "Brinquedos Licenciados (Bluey, Spidey & Outros)": {
+            "foco_atributos": ["Bluey", "Spidey e seus amigos", "Hasbro", "bonecos colecionáveis"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Boneco e Brinquedo Licenciado Original",
+                "gatilhos_descricao": ["O personagem favorito da criançada com preço imperdível."],
+                "chamada_acao": "Garanta o presente perfeito direto na Shopee: {link}"
+            },
+            "tags_obrigatorias": ["#brinquedos", "#bluey", "#spidey", "#hasbro", "#achadosshopee"]
+        },
+        "Skincare & Dermocosméticos Faciais": {
+            "foco_atributos": ["CeraVe", "Creamy", "Principia", "ácido hialurônico", "retinol"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Ativos, Resenha e Skincare Diário",
+                "gatilhos_descricao": ["Transforme sua rotina de cuidados com a pele."],
+                "chamada_acao": "Compre o seu dermocosmético com segurança pelo link: {link}"
+            },
+            "tags_obrigatorias": ["#skincare", "#cerave", "#creamy", "#principia", "#achadosshopee"]
+        },
+        "Perfumaria & Deo Colônias": {
+            "foco_atributos": ["Kaiak", "Natura", "fragrância marcante", "original lacrado"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Perfume Original e Deo Colônia",
+                "gatilhos_descricao": ["Fragrâncias marcantes que deixam rastro por onde passam."],
+                "chamada_acao": "Garanta o seu frasco original pelo link oficial: {link}"
+            },
+            "tags_obrigatorias": ["#perfumaria", "#kaiak", "#natura", "#perfumemasculino", "#achadosshopee"]
+        },
+        "Higiene Bucal Avançada (Oral-B & Colgate)": {
+            "foco_atributos": ["Escova elétrica Oral-B", "refis originais", "limpeza profunda profissional"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Escova Elétrica e Higiene Bucal",
+                "gatilhos_descricao": ["Sorriso mais branco e limpeza de consultório em casa."],
+                "chamada_acao": "Aproveite a oferta e compre direto na Shopee: {link}"
+            },
+            "tags_obrigatorias": ["#oralb", "#colgate", "#higienebucal", "#achadosshopee"]
+        },
+        "Limpeza Pesada, Galões & Lavanderia": {
+            "foco_atributos": ["Omo", "Surf", "Coala", "Mon Bijou", "Cif", "embalagens econômicas"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Produto de Limpeza Profissional e Rendimento",
+                "gatilhos_descricao": ["O segredo para a casa limpa e perfumada economizando muito."],
+                "chamada_acao": "Veja o preço promocional e compre direto na vitrine: {link}"
+            },
+            "tags_obrigatorias": ["#donadecasa", "#limpezapesada", "#omo", "#coala", "#achadosshopee"]
+        },
+        "Utilidades Domésticas & Eletroportáteis": {
+            "foco_atributos": ["Ventilador Mondial", "purificador Consul", "lixeiras inteligentes"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Eletroportátil e Praticidade para Casa",
+                "gatilhos_descricao": ["Soluções inteligentes que facilitam o dia a dia doméstico."],
+                "chamada_acao": "Confira a oferta oficial e garanta o seu utilitário: {link}"
+            },
+            "tags_obrigatorias": ["#utilidadesdomesticas", "#eletroportateis", "#mondial", "#achadosshopee"]
+        },
+        "Moda Streetwear, Camisetas & Moletons": {
+            "foco_atributos": ["estilo BAW", "oversized", "modelagem confortável", "streetwear autêntico"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Moda Streetwear e Estilo Autêntico",
+                "gatilhos_descricao": ["Para quem ama se vestir com atitude e conforto."],
+                "chamada_acao": "Garanta o seu look com desconto exclusivo no link: {link}"
+            },
+            "tags_obrigatorias": ["#streetwear", "#modafeminina", "#modamasc", "#achadosshopee"]
+        },
+        "Universo K-Pop & Colecionáveis Army": {
+            "foco_atributos": ["BTS", "Army", "fotocards", "itens coreanos e colecionáveis"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Colecionável e Acessório K-Pop Army",
+                "gatilhos_descricao": ["Itens essenciais para quem vive a cultura do K-Pop."],
+                "chamada_acao": "Garanta o seu item exclusivo direto na Shopee: {link}"
+            },
+            "tags_obrigatorias": ["#kpop", "#army", "#bts", "#achadosshopee"]
+        },
+        "Lingerie, Moda Íntima & Sensual": {
+            "foco_atributos": ["camisolas sensuais", "conjuntos", "renda", "regulável e confortável"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Lingerie Sensual e Confortável",
+                "gatilhos_descricao": ["Delicadeza, caimento perfeito e muita sensualidade."],
+                "chamada_acao": "Compre com total discrição e segurança pelo link: {link}"
+            },
+            "tags_obrigatorias": ["#lingerie", "#modaintima", "#sensual", "#achadosshopee"]
+        },
+        "Café Gourmet, Cápsulas & Doçaria": {
+            "foco_atributos": ["Dolce Gusto", "Milka", "Kopenhagen", "Dadinho", "chocolates importados"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Café Gourmet e Doce Importado",
+                "gatilhos_descricao": ["Para dar aquela pausa perfeita no dia com sabor incomparável."],
+                "chamada_acao": "Aproveite para garantir o seu direto na Shopee: {link}"
+            },
+            "tags_obrigatorias": ["#cafe", "#dolcegusto", "#docesimportados", "#milka", "#achadosshopee"]
+        },
+        "Suplementação & Nutrição Fitness": {
+            "foco_atributos": ["creatina pura", "whey protein", "alta performance e treino"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Suplemento e Creatina Pura",
+                "gatilhos_descricao": ["Turbine seus resultados com alta pureza nutricional."],
+                "chamada_acao": "Garanta o seu pote oficial com preço especial no link: {link}"
+            },
+            "tags_obrigatorias": ["#suplementos", "#creatina", "#wheyprotein", "#fitness", "#achadosshopee"]
+        },
+        "Eletrônicos, Tech & Gadgets": {
+            "foco_atributos": ["bluetooth", "acessórios sem fio", "mouse pads", "gadgets úteis"],
+            "padrao_seo_pinterest": {
+                "estrutura_titulo": "{nome_curto} - Gadget Tech e Acessório Custo-Benefício",
+                "gatilhos_descricao": ["Tecnologia útil e design moderno para o seu dia a dia."],
+                "chamada_acao": "Garanta o seu produto tecnológico pelo link oficial: {link}"
+            },
+            "tags_obrigatorias": ["#tecnologia", "#eletronicos", "#gadgets", "#achadosshopee"]
+        }
     }
-
-    # Inteligências e Diretrizes Contextuais por Categoria Ampliada
-    self.inteligencias_nicho = {
-        'Bebés e Maternidade': {
-            'publico_alvo': 'Pais e mães focados em economia inteligente e rotina prática.',
-            'gatilho_mental': 'Economia em volume (kits jumbos) e segurança infantil.',
-            'diretriz_copy': 'Destacar o custo-benefício por unidade, absorção e conforto para os filhos.',
-        },
-        'Brinquedos e Jogos Educativos': {
-            'publico_alvo': 'Famílias que buscam desenvolvimento infantil e lazer lúdico.',
-            'gatilho_mental': 'Estímulo cognitivo, interatividade e diversão segura.',
-            'diretriz_copy': 'Enfatizar o aprendizado (método Montessori), personagens favoritos (Bluey, Spidey) e durabilidade do material.',
-        },
-        'Skincare, Beleza & Perfumaria': {
-            'publico_alvo': 'Consumidores conectados em tendências de autocuidado e estética.',
-            'gatilho_mental': 'Desejo, autoexpressão e eficácia dermatológica.',
-            'diretriz_copy': 'Focar no princípio ativo, fragrância marcante, sensação na pele ou tecnologia de higiene avançada.',
-        },
-        'Casa, Limpeza e Organização': {
-            'publico_alvo': 'Donos de casa e profissionais da limpeza focados em rendimento e praticidade.',
-            'gatilho_mental': 'Rendimento superior, economia doméstica e tecnologia útil.',
-            'diretriz_copy': 'Destacar embalagens econômicas/profissionais (2.4kg, galões), poder desengordurante e conforto térmico/praticidade.',
-        },
-        'Moda, Streetwear, Lingerie & K-Pop': {
-            'publico_alvo': 'Jovens, comunidade Army/K-Pop e público que busca estilo e sensualidade.',
-            'gatilho_mental': 'Pertencimento a tribos, exclusividade e autoestima.',
-            'diretriz_copy': 'Enfatizar modelagem confortável, conexão com o universo pop/coreano e detalhes de caimento ou sensualidade.',
-        },
-        'Snacks, Café & Suplementação': {
-            'publico_alvo': 'Amantes de café gourmet, doces importados e praticantes de musculação/fitness.',
-            'gatilho_mental': 'Indulgência imediata e alta performance física.',
-            'diretriz_copy': 'Destacar sabor inconfundível, compatibilidade de cápsulas ou pureza e concentração dos nutrientes.',
-        },
-    }
-
-  def carregar_dados(self):
-    if os.path.exists(self.json_path):
-      with open(self.json_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-    return []
-
-  def classificar_produto(self, titulo_produto):
-    titulo_lower = titulo_produto.lower()
-    for categoria, palavras_chave in self.categorias_mapeadas.items():
-      for termo in palavras_chave:
-        if termo in titulo_lower:
-          return categoria
-    return 'Outros Achados'
-
-  def obter_inteligencia_produto(self, titulo_produto):
-    categoria = self.classificar_produto(titulo_produto)
-    return self.inteligencias_nicho.get(
-        categoria,
-        {
-            'publico_alvo': 'Público geral de achados da Shopee.',
-            'gatilho_mental': 'Custo-benefício e utilidade imediata.',
-            'diretriz_copy': 'Focar na utilidade prática e preço atrativo.',
-        },
-    )
-
-  def obter_estatisticas(self):
-    total = len(self.base_dados)
-    stats = {cat: 0 for cat in self.categorias_mapeadas.keys()}
-    stats['Outros Achados'] = 0
-
-    for item in self.base_dados:
-      cat = self.classificar_produto(item.get('title', ''))
-      stats[cat] += 1
-
-    return total, stats
-
-
-if __name__ == '__main__':
-  cerebro = CerebroAchadosFelipeV3Completo()
-  total, stats = cerebro.obter_estatisticas()
-  print(f'=== CÉREBRO V3 COMPLETO - STATUS ({total} itens analisados) ===')
-  for cat, qtd in stats.items():
-    print(f'- {cat}: {qtd} produtos mapeados')
+}
