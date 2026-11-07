@@ -1,56 +1,38 @@
 {
     "configuracao_geral": {
-        "versao": "6.0",
-        "objetivo": "Matriz de inteligência de conteúdo profissional focada em SEO avançado para Pinterest (800 chars), carrosséis e prompts de vídeo."
+        "versao": "10.0",
+        "objetivo": "Matriz de inteligência alinhada rigorosamente às pastas do Pinterest e às diretrizes de postagem do Felipe."
     },
     "categorias_e_regras": {
-        "Maternidade & Enxoval de Bebê": {
-            "foco_atributos": ["pacotes jumbos de fraldas", "toalhas umedecidas em volume", "kits de higiene recém-nascido", "conforto e absorção"],
-            "padrao_seo_pinterest": {
-                "estrutura_titulo": "{nome_curto} - Kit Econômico, Fraldas e Enxoval de Bebê",
-                "gatilhos_descricao": "Procurando economia real no enxoval e na rotina diária? O {nome_longo} é indispensável para pais que buscam praticidade, alto poder de absorção e excelente custo-benefício em pacotes jumbos. Desenvolvido para garantir o máximo de conforto e segurança para os pequenos, evitando vazamentos e irritações na pele sensível. Aproveite a oportunidade de garantir um produto de alta qualidade com entrega segura e preço promocional direto na vitrine oficial. Confira todos os detalhes, avaliações e assegure o seu kit hoje mesmo para facilitar o dia a dia da família. Garanta o seu link direto de afiliado e aproveite o melhor preço do mercado: {link}"
-            },
-            "tags_obrigatorias": ["#achadosshopee", "#maternidade", "#mamae", "#fraldas", "#dicaparamães", "#enxovaldebebe", "#pampers", "#pompom"]
+        "Beleza e Cuidados": {
+            "tags_obrigatorias": ["#achadosshopee", "#beleza", "#cuidadopessoal", "#shopeebr"]
         },
-        "Brinquedos & Jogos Educativos": {
-            "foco_atributos": ["método montessori", "estímulo cognitivo", "interatividade", "personagens licenciados (Bluey, Spidey)", "durabilidade"],
-            "padrao_seo_pinterest": {
-                "estrutura_titulo": "{nome_curto} - Brinquedo Educativo, Lúdico e Interativo",
-                "gatilhos_descricao": "Quer estimular o desenvolvimento cognitivo, a criatividade e tirar as crianças das telas de forma divertida? Conheça o {nome_longo}, um brinquedo lúdico de alta qualidade, seguro e perfeito para garantir horas de entretenimento saudável. Com estrutura resistente, cores atrativas e foco pedagógico, ele une diversão e aprendizado em um só produto. Ideal para presentear e acompanhar o crescimento infantil com total segurança. Descubra todas as vantagens, veja avaliações de outros pais e aproveite o link oficial para garantir o melhor preço na Shopee. Acesse agora e confira os detalhes da oferta: {link}"
-            },
-            "tags_obrigatorias": ["#brinquedos", "#montessori", "#criancas", "#brincadeiradecrianca", "#achadinhosshopee", "#lazerinfantil", "#bluey", "#spidey"]
+        "Skincare": {
+            "tags_obrigatorias": ["#skincare", "#cerave", "#principia", "#creamy", "#achadosshopee", "#rotinafacial"]
         },
-        "Skincare & Dermocosméticos": {
-            "foco_atributos": ["princípios ativos", "ácido hialurônico", "retinol", "hidratantes CeraVe e Creamy", "séruns Principia"],
-            "padrao_seo_pinterest": {
-                "estrutura_titulo": "{nome_curto} - Ativos, Resenha e Rotina de Skincare",
-                "gatilhos_descricao": "O queridinho do skincare que transformou a rotina de cuidados faciais! O {nome_longo} traz alta performance dermatológica com princípios ativos potentes que hidratam profundamente, uniformizam a textura e protegem a barreira cutânea. Ideal para quem busca um tratamento de nível profissional sem precisar gastar uma fortuna em farmácias. Tenha uma pele radiante, tratada e saudável todos os dias com um produto testado e aprovado. Aproveite o melhor custo-benefício, confira a disponibilidade e garanta o seu com total segurança pelo link oficial direto: {link}"
-            },
-            "tags_obrigatorias": ["#skincare", "#autocuidado", "#cerave", "#creamy", "#principia", "#achadosshopee", "#dicadebeleza", "#rotinafacial"]
+        "Utilidades para Casa": {
+            "tags_obrigatorias": ["#achadosshopee", "#utilidadesdomesticas", "#donadecasa", "#shopeebr"]
         },
-        "Casa, Limpeza Pesada & Organização": {
-            "foco_atributos": ["embalagens econômicas e galões (Omo, Surf, Coala, Mon Bijou, Cif)", "alto rendimento", "poder desengordurante"],
-            "padrao_seo_pinterest": {
-                "estrutura_titulo": "{nome_curto} - Limpeza Profissional e Economia para Casa",
-                "gatilhos_descricao": "O segredo definitivo para manter a casa limpa, organizada e perfumada por muito mais tempo com economia real! O {nome_longo} oferece rendimento profissional superior, combatendo a sujeira mais difícil com facilidade e praticidade na rotina de faxina. Desenvolvido para otimizar o seu tempo e cuidar de cada ambiente com fórmulas potentes e embalagens econômicas de alto desempenho. Transforme as tarefas domésticas em algo rápido e eficiente. Confira todos os detalhes, avaliações e garanta o seu produto com preço especial direto na vitrine oficial: {link}"
-            },
-            "tags_obrigatorias": ["#donadecasa", "#limpezacasanova", "#utilidadesdomesticas", "#organizacao", "#achadosshopee", "#faxina", "#omo", "#coala"]
+        "Limpeza e Lavanderia": {
+            "tags_obrigatorias": ["#donadecasa", "#limpezapesada", "#omo", "#coala", "#achadosshopee"]
         },
-        "Moda, Streetwear & Universo K-Pop (Army)": {
-            "foco_atributos": ["modelagem confortável", "oversized", "estilo autêntico", "fandoms (BTS/Army)", "lingeries sensuais"],
-            "padrao_seo_pinterest": {
-                "estrutura_titulo": "{nome_curto} - Estilo Streetwear, K-Pop e Tendência",
-                "gatilhos_descricao": "Para quem busca autenticidade, estilo inconfundível e total conexão com as principais tendências e fandoms! O {nome_longo} une modelagem confortável, caimento impecável e tecidos de alta qualidade para compor looks cheios de personalidade. Seja para o dia a dia, para expressar sua paixão pela cultura pop ou garantir peças exclusivas, este item é indispensável no guarda-roupa. Renove o seu visual com muita atitude, conforto e preço justo. Garanta sua peça com segurança e desconto exclusivo no link oficial: {link}"
-            },
-            "tags_obrigatorias": ["#streetwear", "#kpop", "#army", "#bts", "#modafeminina", "#lookdodia", "#achadosshopee", "#lingerie"]
+        "Maternidade e Bebê": {
+            "tags_obrigatorias": ["#achadosshopee", "#maternidade", "#bebe", "#enxoval", "#shopeebr"]
         },
-        "Geral (Coringa / Utilidades)": {
-            "foco_atributos": ["praticidade", "soluções inteligentes", "custo-benefício"],
-            "padrao_seo_pinterest": {
-                "estrutura_titulo": "{nome_curto} - Achado Inteligente e Indispensável",
-                "gatilhos_descricao": "Sabe aquele produto engenhoso que resolve os perrengues do dia a dia e faz a gente se perguntar por que não comprou antes? O {nome_longo} chegou para trazer máxima praticidade, design moderno e eficiência real para a sua rotina. Um investimento inteligente que une alta durabilidade e excelente custo-benefício. Não perca tempo procurando soluções complicadas. Confira as avaliações completas, veja o preço promocional e garanta o seu item com entrega segura direto na Shopee: {link}"
-            },
-            "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil", "#achadinhos", "#utilidades", "#dicasuteis"]
+        "Brinquedos e Jogos": {
+            "tags_obrigatorias": ["#brinquedos", "#montessori", "#criancas", "#achadinhosshopee"]
+        },
+        "Moda e Estilo": {
+            "tags_obrigatorias": ["#achadosshopee", "#moda", "#lookdodia", "#shopeebr"]
+        },
+        "Eletrônicos e Tech": {
+            "tags_obrigatorias": ["#achadosshopee", "#tecnologia", "#gadgets", "#shopeebr"]
+        },
+        "Café e Snacks": {
+            "tags_obrigatorias": ["#cafe", "#dolcegusto", "#docesimportados", "#achadosshopee"]
+        },
+        "Suplementação e Fitness": {
+            "tags_obrigatorias": ["#suplementos", "#creatina", "#wheyprotein", "#fitness", "#achadosshopee"]
         }
     }
 }
