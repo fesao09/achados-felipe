@@ -33,7 +33,6 @@ st.markdown(
     .metric-card { background-color: #282828; padding: 15px; border-radius: 10px; text-align: center; border-bottom: 4px solid #FF4500; }
     [data-testid="collapsedControl"] { display: none; }
     
-    /* Controle rigoroso do Banner para não estourar no tablet/desktop */
     .banner-container {
         display: flex;
         flex-direction: column;
@@ -66,24 +65,18 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- CABEÇALHO COM LOGO/BANNER CONTROLADO E TÍTULO GARANTIDO ---
+# --- CABEÇALHO COM BANNER CONTROLADO E TÍTULO GARANTIDO ---
 st.markdown('<div class="banner-container">', unsafe_allow_html=True)
-
-imagem_exibida = False
 try:
     if os.path.exists("banner.jpg"):
         st.image("banner.jpg")
-        imagem_exibida = True
     elif os.path.exists("banner.png"):
         st.image("banner.png")
-        imagem_exibida = True
 except:
     pass
 
-# Se não houver imagem de banner física, ou para garantir identidade visual sempre presente:
 st.markdown('<p class="app-title">🔎 Central Achados do Felipe</p>', unsafe_allow_html=True)
 st.markdown('<p class="app-subtitle">Sua Máquina de Conteúdo e Automação Offline</p>', unsafe_allow_html=True)
-
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown("---")
 
@@ -103,24 +96,39 @@ def carregar_cerebro():
             "Utilidades & Acessórios": {
                 "tags": "#achadosshopee #utilidades #achadinhos #shopeebrasil #dicautil #solucoes",
                 "ganchos_tik": [
-                    "Você não vai acreditar no que o {nome} consegue resolver no dia a dia:",
-                    "O item mais engenhoso que encontrei na Shopee:",
-                    "Como eu sofria antes de conhecer o {nome}:"
+                    "Cansado de passar perrengue? Olha o que esse {nome} faz:",
+                    "O item mais engenhoso que salvei nos favoritos:",
+                    "Como eu sofria antes de ter o {nome}:"
                 ],
                 "legenda_tik": [
-                    "😱 Chega de perrengues! {destaque} Garanta o seu na sacolinha amarela antes que acabe 👇\n{link}\n\n{tags}"
+                    "😱 Salvação pura para o dia a dia! {destaque} Garanta o seu com desconto na sacolinha amarela 👇\n{link}\n\n{tags}"
                 ],
-                "titulos_insta": ["Praticidade Real 🛡️", "O Item que Faltava: {nome}"],
+                "titulos_insta": ["Problema Resolvido 🛡️", "O Indispensável: {nome}"],
                 "legenda_insta": [
-                    "🛡️ Sabe aquele produto que parece simples, mas muda completamente a sua rotina?\n\nO {nome} é exatamente isso. {destaque} Prático, funcional e com um preço surreal na Shopee.\n\n🔗 Corre no link da BIO para garantir o seu com segurança!\n\n{tags}"
+                    "🛡️ Sabe aquele problema corriqueiro que irrita todo mundo?\n\nO {nome} resolve isso em segundos. {destaque} É o tipo de investimento prático que faz a gente se perguntar por que não comprou antes.\n\n🔗 Corre no link da BIO para garantir o seu com segurança!\n\n{tags}"
+                ]
+            },
+            "Eletrônicos & Áudio": {
+                "tags": "#tecnologia #eletronicos #setupgamer #dicastech #achadosshopee #shopeebr",
+                "ganchos_tik": [
+                    "A tecnologia que você precisava e não achava por um preço justo:",
+                    "Não gaste uma fortuna antes de ver o {nome}:",
+                    "O eletrônico que virou febre no app vizinho:"
+                ],
+                "legenda_tik": [
+                    "⚡ Qualidade absurda pelo preço cobrado! {destaque} Corre na sacolinha amarela 👇\n{link}\n\n{tags}"
+                ],
+                "titulos_insta": ["Tech de Respeito 💻", "Upgrade Custo-Benefício: {nome}"],
+                "legenda_insta": [
+                    "⚡ Procura tecnologia de ponta sem deixar o salário lá?\n\nO {nome} entrega acabamento premium e desempenho real. {destaque} Um custo-benefício que só garimpando muito na Shopee para encontrar.\n\n🔗 Corre no link da BIO antes que acabe!\n\n{tags}"
                 ]
             },
             "Geral (Coringa)": {
-                "tags": "#achados #achadinhos #shopeebrasil #comprasshopee",
-                "ganchos_tik": ["Olha esse achado imperdível:"],
-                "legenda_tik": ["😱 Garanta na sacolinha amarela 👇\n{link}\n\n{tags}"],
-                "titulos_insta": ["Achado de Ouro 🏆"],
-                "legenda_insta": ["🚀 Sabe aquele produto útil? O {nome} é perfeito. {destaque}\n🔗 Link na BIO.\n\n{tags}"]
+                "tags": "#achados #achadinhos #shopeebrasil #comprasshopee #dicas",
+                "ganchos_tik": ["Olha o nível desse achado que encontrei na Shopee:"],
+                "legenda_tik": ["🚀 Achado de ouro! {destaque} Garanta na sacolinha amarela 👇\n{link}\n\n{tags}"],
+                "titulos_insta": ["Achado Inteligente 🏆"],
+                "legenda_insta": ["🚀 Encontrei o {nome} com um preço surreal! {destaque} Perfeito para quem ama praticidade e economia.\n\n🔗 Link direto na BIO.\n\n{tags}"]
             }
         }
         with open(CEREBRO_FILE, "w", encoding="utf-8") as f:
@@ -198,7 +206,7 @@ try:
 except Exception:
   pass
 
-# --- MOTOR DE ATRIBUTOS E EXTRATOR INTELIGENTE ---
+# --- EXTRATOR DE ATRIBUTOS E INSIGHT DE FORMATO ---
 def limpar_e_extrair_shopee(texto_bruto):
     link_puro = texto_bruto
     for p in texto_bruto.split():
@@ -230,23 +238,29 @@ def limpar_e_extrair_shopee(texto_bruto):
     if atributos:
         frase_destaque = f"Ele conta com { ' e '.join(atributos[:2]) }, garantindo máxima eficiência no uso diário!"
 
+    # Determina o Insight de Formato ideal com base no produto
+    if any(k in t_lower for k in ["caixa", "som", "fone", "smart", "automático", "robo", "aspirador"]):
+        insight_formato = "🎬 FORMATO IDEAL: VÍDEO DINÂMICO (Demonstração prática em funcionamento gera 3x mais cliques)."
+    else:
+        insight_formato = "📸 FORMATO IDEAL: CARROSSEL ESTÁTICO OU FOTOS (Detalhes estéticos e comparativos funcionam melhor)."
+
     palavras = nome_puro.split()
     nome_curto = " ".join(palavras[:5]).rstrip(",-:")
     if not nome_curto:
         nome_curto = "Achado Imperdível"
         nome_puro = "Produto Shopee"
         
-    return nome_puro, nome_curto, link_puro, frase_destaque
+    return nome_puro, nome_curto, link_puro, frase_destaque, insight_formato
 
-def gerar_textos_hibridos(nome_curto, nome_longo, link, categoria, destaque, usar_ia_forcado=False):
+def gerar_textos_hibridos(nome_curto, nome_longo, link, categoria, destaque, insight, usar_ia_forcado=False):
     cerebro = carregar_cerebro()
-    cat_data = cerebro.get(categoria, cerebro.get("Geral (Coringa)", list(cerebro.values())[0]))
+    cat_data = cerebro.get(categoria, cerebro.get("Utilidades & Acessórios", list(cerebro.values())[0]))
     
     tags = cat_data.get("tags", "#achados #shopee")
     
     if usar_ia_forcado and IA_DISPONIVEL:
         try:
-            prompt = f"""Gere textos altamente persuasivos para afiliado baseados nas especificações reais, com português natural e fluído.
+            prompt = f"""Gere textos altamente persuasivos para afiliado baseados nas especificações reais, com português natural, fluído e focado em conversão.
 Produto Completo: '{nome_longo}'
 Link: {link}
 Categoria: {categoria}
@@ -259,7 +273,7 @@ INSTA_LEGENDA: Legenda rica e persuasiva para Instagram com link na bio e tags (
 PIN_TITULO: Título rico em SEO para Pinterest
 PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest usando todas as especificações do produto, com chamada para ação e tags ({tags})
 SHP_LEGENDA: Legenda curta para Shopee Vídeo com link
-PROMPT_IA: Prompt em inglês para imagem"""
+PROMPT_IA: Prompt detalhado em inglês para gerar imagem/vídeo no Midjourney ou IA de vídeo"""
             
             res = client.models.generate_content(model="gemini-2.5-flash", contents=prompt).text
             
@@ -282,10 +296,11 @@ PROMPT_IA: Prompt em inglês para imagem"""
         except Exception as e:
             st.toast(f"Aviso de IA: {e}")
 
-    tik_tit_template = random.choice(cat_data.get("ganchos_tik", ["Olha esse achado imperdível:"]))
+    # Modo Offline Enriquecido e Natural (Com Insight de Formato e Prompt de Vídeo inclusos)
+    tik_tit_template = random.choice(cat_data.get("ganchos_tik", ["Olha o que esse {nome} é capaz de fazer:"]))
     tik_leg_template = random.choice(cat_data.get("legenda_tik", ["Garanta na sacolinha 👇\n{link}\n\n{tags}"]))
-    insta_tit_template = random.choice(cat_data.get("titulos_insta", ["Achado Imperdível ✨"]))
-    insta_leg_template = random.choice(cat_data.get("legenda_insta", ["Confira os detalhes de {nome}! {destaque}\n🔗 Link na bio.\n\n{tags}"]))
+    insta_tit_template = random.choice(cat_data.get("titulos_insta", ["Achado de Respeito ✨"]))
+    insta_leg_template = random.choice(cat_data.get("legenda_insta", ["Conheça o {nome}! {destaque}\n🔗 Link na bio.\n\n{tags}"]))
     
     tik_tit = tik_tit_template.replace("{nome}", nome_curto).replace("{destaque}", destaque)
     tik_leg = tik_leg_template.replace("{nome}", nome_curto).replace("{link}", link).replace("{tags}", tags).replace("{destaque}", destaque)
@@ -300,9 +315,12 @@ PROMPT_IA: Prompt em inglês para imagem"""
     if len(shp_leg) > 150:
         shp_leg = f"Achado imperdível! Vitrine 👇\n{link} #achados"
         
-    prompt_ia = f"UGC aesthetic video showcasing {nome_curto}, trendy lifestyle background, 4k"
+    prompt_ia = f"UGC aesthetic cinematic video showcasing {nome_curto} in use, clean background, realistic lighting, 4k resolution"
     
-    return "Motor Offline Inteligente (Aprimorado)", tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
+    # Injeta o insight de formato junto à estratégia
+    estrategia_final = f"Motor Offline Inteligente (Aprimorado) | {insight}"
+    
+    return estrategia_final, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
 
 # ==========================================
 # TELAS DO SISTEMA
@@ -334,11 +352,14 @@ if menu == "🎬 Gerar":
         n_curto = str(prod_row["nome_curto"]) if pd.notna(prod_row["nome_curto"]) else n_longo[:25]
         destaque = str(prod_row["destaques"]) if pd.notna(prod_row["destaques"]) else "Qualidade garantida!"
 
+        # Revalida o insight de formato na hora de gerar
+        _, _, _, _, insight_gerado = limpar_e_extrair_shopee(n_longo)
+
         usar_ia = True if "Inteligência Artificial" in modo_geracao else False
 
         with st.spinner("Processando roteiros e otimizando o texto..."):
             estrategia, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia = gerar_textos_hibridos(
-                n_curto, n_longo, link_af, nicho, destaque, usar_ia_forcado=usar_ia
+                n_curto, n_longo, link_af, nicho, destaque, insight_gerado, usar_ia_forcado=usar_ia
             )
 
         run_query(
@@ -346,7 +367,7 @@ if menu == "🎬 Gerar":
             (prod_id, estrategia, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia),
             fetch=False
         )
-        st.success(f"🎉 Sucesso! Método utilizado: {estrategia}")
+        st.success(f"🎉 Sucesso! Roteiro gerado.")
         st.rerun()
   else:
     st.info("Catálogo vazio ou todos os produtos já gerados!")
@@ -361,7 +382,10 @@ elif menu == "📋 Pendentes":
       status_ico = "✔️ Concluído" if "Concluído" in str(row["status"]) else "🟡 Pendente"
       nome_p = row["produto"] if pd.notna(row["produto"]) else "Produto"
 
-      with st.expander(f"[{status_ico}] {nome_p} — ({row['estrategia_ia']})"):
+      with st.expander(f"[{status_ico}] {nome_p}"):
+        # Exibe o Insight de Formato estratégico no topo do card
+        st.info(f"💡 {row['estrategia_ia']}")
+        
         st.text_input("TikTok Gancho", value=row["tik_titulo_video"] or "", key=f"tt_{row['id']}")
         st.text_area("TikTok Legenda", value=row["tik_legenda"] or "", height=90, key=f"tl_{row['id']}")
         st.text_input("Insta Capa", value=row["insta_titulo_video"] or "", key=f"it_{row['id']}")
@@ -369,6 +393,9 @@ elif menu == "📋 Pendentes":
         st.text_input("Pinterest Título", value=row["pin_titulo"] or "", key=f"pt_{row['id']}")
         st.text_area("Pinterest Descrição (SEO Completo)", value=row["pin_descricao"] or "", height=160, key=f"pd_{row['id']}")
         st.text_area("Shopee Legenda", value=row["shp_legenda"] or "", height=60, key=f"sl_{row['id']}")
+        
+        # O Prompt de Vídeo voltou com destaque absoluto!
+        st.text_area("🎥 Prompt de Vídeo / B-Roll (Para IA de Geração)", value=row["prompt_ia"] or "", height=80, key=f"pi_{row['id']}")
         
         c1, c2 = st.columns(2)
         with c1:
@@ -394,7 +421,7 @@ elif menu == "📦 Catálogo":
     enviar = st.form_submit_button("Analisar e Salvar no Catálogo 🚀")
 
     if enviar and texto_zap:
-      nome_puro, nome_curto, link_limpo, frase_destaque = limpar_e_extrair_shopee(texto_zap)
+      nome_puro, nome_curto, link_limpo, frase_destaque, _ = limpar_e_extrair_shopee(texto_zap)
       
       run_query(
           "INSERT INTO produtos (nome, nome_curto, destaques, nicho, link_afiliado) VALUES (?, ?, ?, ?, ?)", 
@@ -428,10 +455,10 @@ elif menu == "🧠 Treinamento":
 
 elif menu == "🧬 Auto-Evolução":
   st.markdown("### 🧬 Auto-Evolução do Cérebro Offline")
-  st.markdown("Digite abaixo o nome de uma nova categoria ou nicho (Ex: *Utilidades e Ferramentas*, *Moda e Acessórios*).")
+  st.markdown("Digite abaixo o nome de uma nova categoria ou nicho para expandir sua inteligência.")
 
   with st.form("form_auto_evolucao"):
-    novo_nicho = st.text_input("Nome da Nova Categoria/Nicho:", placeholder="Ex: Utilidades e Ferramentas")
+    novo_nicho = st.text_input("Nome da Nova Categoria/Nicho:", placeholder="Ex: Casa & Cozinha")
     btn_evoluir = st.form_submit_button("Gerar e Injetar Categoria no Cérebro 🧬")
 
     if btn_evoluir and novo_nicho:
@@ -453,8 +480,8 @@ Responda APENAS com um objeto JSON válido, sem markdown extra, contendo exatame
       "Legenda envolvente para TikTok com {{link}}, {{tags}} e {{destaque}}"
     ],
     "titulos_insta": [
-      "Título de Capa 1",
-      "Título de Capa 2"
+      "Título de capa 1",
+      "Título de capa 2"
     ],
     "legenda_insta": [
       "Legenda persuasiva estruturada para Instagram para o produto {{nome}}, destacando benefícios, com chamada para ação, {{link}} e {{tags}}."
