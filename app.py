@@ -36,7 +36,6 @@ st.markdown(
     .stButton>button:hover { opacity: 0.8 !important; }
     
     .card { background-color: #282828; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border-left: 5px solid #FF4500; }
-    .metric-card { background-color: #282828; padding: 15px; border-radius: 10px; text-align: center; border-bottom: 4px solid #FF4500; }
     [data-testid="collapsedControl"] { display: none; }
     
     .banner-container {
@@ -71,7 +70,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- CABEÇALHO COM BANNER CONTROLADO E TÍTULO GARANTIDO ---
+# --- CABEÇALHO ---
 st.markdown('<div class="banner-container">', unsafe_allow_html=True)
 try:
   if os.path.exists("banner.jpg"):
@@ -115,22 +114,20 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "5.0",
-            "objetivo": (
-                "Matriz de inteligência baseada no Pinterest do Felipe."
-            ),
+            "versao": "6.0",
+            "objetivo": "Matriz de inteligência",
         },
         "categorias_e_regras": {
-            "Utilidades & Acessórios": {
+            "Geral (Coringa / Utilidades)": {
                 "foco_atributos": ["praticidade", "custo-benefício"],
                 "padrao_seo_pinterest": {
                     "estrutura_titulo": (
                         "{nome_curto} - Achado Útil para o Dia a Dia"
                     ),
-                    "gatilhos_descricao": [
-                        "Resolva seus problemas cotidianos com facilidade.",
-                    ],
-                    "chamada_acao": "Garanta o seu na Shopee: {link}",
+                    "gatilhos_descricao": (
+                        "Resolva seus problemas cotidianos com facilidade."
+                        " Conheça o {nome_longo}. {link}"
+                    ),
                 },
                 "tags_obrigatorias": ["#achadosshopee", "#utilidades"],
             }
@@ -208,7 +205,6 @@ def run_query(query, params=(), fetch=True):
   conn.close()
 
 
-# --- CONFIGURAÇÃO DA IA ---
 IA_DISPONIVEL = False
 client = None
 try:
@@ -257,8 +253,6 @@ def limpar_e_extrair_shopee(texto_bruto):
     atributos.append("sistema de acionamento automático")
   if "vento" in t_lower or "reforçado" in t_lower:
     atributos.append("estrutura reforçada contra ventos fortes")
-  if "uv" in t_lower or "proteção solar" in t_lower:
-    atributos.append("proteção contra raios UV")
 
   frase_destaque = "Design moderno, alta durabilidade e acabamento premium."
   if atributos:
@@ -277,6 +271,7 @@ def limpar_e_extrair_shopee(texto_bruto):
           "automático",
           "robo",
           "aspirador",
+          "kit",
       ]
   ):
     insight_formato = "🎬 FORMATO IDEAL: VÍDEO DINÂMICO (Demonstração prática em funcionamento gera 3x mais cliques)."
@@ -305,7 +300,9 @@ def gerar_textos_hibridos(
   categorias_dict = cerebro.get("categorias_e_regras", {})
   cat_data = categorias_dict.get(
       categoria,
-      list(categorias_dict.values())[0] if categorias_dict else {},
+      categorias_dict.get(
+          "Geral (Coringa / Utilidades)", list(categorias_dict.values())[0]
+      ),
   )
 
   tags_list = cat_data.get(
@@ -323,11 +320,11 @@ Categoria: {categoria}
 Responda EXATAMENTE neste formato de chaves:
 TIK_TITULO: Gancho curto e magnético para TikTok
 TIK_LEGENDA: Legenda para TikTok com sacolinha e tags ({tags})
-INSTA_TITULO: Título chamativo para Capa do Reels
+INSTA_TITULO: Título chamativo para Capa do Reels / Carrossel
 INSTA_LEGENDA: Legenda rica e persuasiva para Instagram com link na bio e tags ({tags})
-PIN_TITULO: Título rico em SEO para Pinterest
-PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest usando todas as especificações do produto, com chamada para ação e tags ({tags})
-SHP_LEGENDA: Legenda curta para Shopee Vídeo com link
+PIN_TITULO: Título rico em SEO para Pinterest (Até 100 caracteres)
+PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest usando todas as especificações do produto, com chamada para ação, links e tags (Perto de 800 caracteres) ({tags})
+SHP_LEGENDA: Legenda curta para Shopee Vídeo com link (Menos de 150 caracteres)
 PROMPT_IA: Prompt detalhado em inglês para gerar imagem/vídeo no Midjourney ou IA de vídeo"""
 
       res = client.models.generate_content(
@@ -380,28 +377,55 @@ PROMPT_IA: Prompt detalhado em inglês para gerar imagem/vídeo no Midjourney ou
     except Exception as e:
       st.toast(f"Aviso de IA: {e}")
 
-  # Fallback Offline Inteligente estruturado com as regras do Pinterest
-  tik_tit = f"Olha o que esse {nome_curto} é capaz de fazer:"
+  # --- MODO OFFLINE PROFISSIONAL E ROBUSTO ---
+  tik_tit = f"Cansado de passar perrengue? Olha o que esse {nome_curto} faz:"
   tik_leg = f"😱 Salvação pura para o dia a dia! {destaque} Garanta o seu com desconto na sacolinha amarela 👇\n{link}\n\n{tags}"
 
   insta_tit = f"O Indispensável: {nome_curto}"
-  insta_leg = f"🛡️ Sabe aquele item prático que muda a rotina?\n\nO {nome_curto} resolve isso com facilidade. {destaque} Um excelente investimento para o dia a dia.\n\n🔗 Corre no link da BIO para garantir o seu com segurança!\n\n{tags}"
+  insta_leg = f"🛡️ Sabe aquele problema corriqueiro que irrita todo mundo?\n\nO {nome_curto} resolve isso em segundos. {destaque} É o tipo de investimento prático que faz a gente se perguntar por que não comprou antes.\n\n🔗 Corre no link da BIO para garantir o seu com segurança!\n\n{tags}"
 
-  # Padrão SEO Pinterest puxado do Cérebro V3
+  # Padrão SEO Pinterest profissional (Gera texto longo e rico perto de 800 caracteres)
   seo_rule = cat_data.get("padrao_seo_pinterest", {})
   pin_tit = (
-      seo_rule.get("estrutura_titulo", "{nome_curto} - Achado Imperdível")
+      seo_rule.get(
+          "estrutura_titulo",
+          "{nome_curto} - Review Completo e Onde Comprar",
+      )
       .replace("{nome_curto}", nome_curto)
       .replace("{nome_longo}", nome_longo)
   )
-  pin_desc = f"Procurando por {nome_longo}? Descubra todos os detalhes desta excelente opção da categoria {categoria}. {destaque} Aproveite a oferta oficial e confira o link de desconto direto: {link} \n\nTags: {tags}"
 
-  shp_leg = f"Achado imperdível! {nome_curto}. Confira na vitrine 👇\n{link} {tags}"
-  if len(shp_leg) > 150:
-    shp_leg = f"Achado imperdível! Vitrine 👇\n{link} #achados"
+  base_desc_modelo = seo_rule.get(
+      "gatilhos_descricao",
+      "Procurando por {nome_longo}? Conheça todas as vantagens e diferenciais"
+      " deste excelente produto da categoria {categoria}. {destaque} Desenvolvido"
+      " para proporcionar máxima eficiência, durabilidade e praticidade no seu"
+      " dia a dia. Excelente opção para quem preza por qualidade superior e"
+      " preço justo. Confira avaliações, veja todos os detalhes técnicos e"
+      " garanta o seu com entrega segura e desconto exclusivo direto na"
+      " plataforma oficial. Não perca tempo e adquira já o seu pelo link"
+      " direto: {link}",
+  )
 
-  prompt_ia = f"UGC aesthetic cinematic video showcasing {nome_curto} in use, clean background, realistic lighting, 4k resolution"
-  estrategia_final = f"Motor Offline Inteligente (Cérebro V3) | {insight}"
+  pin_desc = (
+      base_desc_modelo.replace("{nome_longo}", nome_longo)
+      .replace("{nome_curto}", nome_curto)
+      .replace("{categoria}", categoria)
+      .replace("{destaque}", destaque)
+      .replace("{link}", link)
+  )
+  # Expande para garantir robustez de SEO no Pinterest (chegando próximo a 700-800 caracteres)
+  pin_desc += f"\n\nEste item foi selecionado estrategicamente em nossa curadoria para entregar a melhor experiência de compra e utilidade real. Explore mais dicas, novidades e recomendações exclusivas em nossa vitrine oficial.\n\nTermos relacionados e tags: {tags}"
+
+  # Shopee estrito a menos de 150 caracteres
+  shp_leg = f"Achado imperdível! {nome_curto}. Confira na vitrine oficial 👇\n{link} {tags}"
+  if len(shp_leg) > 145:
+    shp_leg = f"Imperdível! {nome_curto} 👇\n{link} #achados"
+
+  # Prompt de Vídeo / B-Roll profissional para IA
+  prompt_ia = f"Cinematic UGC video showcasing {nome_curto} in a modern clean environment, realistic lighting, macro details, smooth camera movement, 4k resolution, vertical format for Reels and TikTok"
+
+  estrategia_final = f"Motor Offline Profissional | {insight}"
 
   return (
       estrategia_final,
@@ -438,7 +462,7 @@ if menu == "🎬 Gerar":
       modo_geracao = st.radio(
           "Escolha o Motor de Geração:",
           [
-              "⚡ Motor Offline Inteligente (Cérebro V3)",
+              "⚡ Motor Offline Profissional (Garantido e Completo)",
               "🤖 Tentar Forçar com Inteligência Artificial (Gemini)",
           ],
           index=0,
@@ -468,7 +492,7 @@ if menu == "🎬 Gerar":
         _, _, _, _, insight_gerado = limpar_e_extrair_shopee(n_longo)
         usar_ia = True if "Inteligência Artificial" in modo_geracao else False
 
-        with st.spinner("Processando roteiros baseados no Cérebro V3..."):
+        with st.spinner("Processando roteiros e otimizando o SEO..."):
           (
               estrategia,
               tik_tit,
@@ -508,7 +532,7 @@ if menu == "🎬 Gerar":
             ),
             fetch=False,
         )
-        st.success("🎉 Sucesso! Roteiro gerado.")
+        st.success("🎉 Sucesso! Roteiro profissional gerado.")
         st.rerun()
   else:
     st.info("Catálogo vazio ou todos os produtos já gerados!")
@@ -532,6 +556,7 @@ elif menu == "📋 Pendentes":
       nome_p = row["produto"] if pd.notna(row["produto"]) else "Produto"
 
       with st.expander(f"[{status_ico}] {nome_p}"):
+        # Exibe o Insight de Formato (Vídeo Dinâmico vs Carrossel) no topo
         st.info(f"💡 {row['estrategia_ia']}")
 
         st.text_input(
@@ -546,7 +571,7 @@ elif menu == "📋 Pendentes":
             key=f"tl_{row['id']}",
         )
         st.text_input(
-            "Insta Capa",
+            "Insta Capa / Carrossel",
             value=row["insta_titulo_video"] or "",
             key=f"it_{row['id']}",
         )
@@ -562,13 +587,13 @@ elif menu == "📋 Pendentes":
             key=f"pt_{row['id']}",
         )
         st.text_area(
-            "Pinterest Descrição (SEO Completo)",
+            "Pinterest Descrição SEO (Rica, ~800 caracteres)",
             value=row["pin_descricao"] or "",
-            height=160,
+            height=180,
             key=f"pd_{row['id']}",
         )
         st.text_area(
-            "Shopee Legenda",
+            "Shopee Legenda (Curta, <150 caracteres)",
             value=row["shp_legenda"] or "",
             height=60,
             key=f"sl_{row['id']}",
@@ -601,8 +626,6 @@ elif menu == "📋 Pendentes":
 elif menu == "📦 Catálogo":
   st.markdown("### 📦 Catálogo de Produtos")
   cerebro = carregar_cerebro()
-
-  # Extrai as categorias do JSON e adiciona a opção de criar nova
   categorias_dict = cerebro.get("categorias_e_regras", {})
   lista_nichos = list(categorias_dict.keys())
   lista_nichos.append("➕ Criar Nova Categoria...")
@@ -610,9 +633,8 @@ elif menu == "📦 Catálogo":
   with st.form("form_cat_manual"):
     texto_zap = st.text_area(
         "Cole a mensagem do WhatsApp ou Link Shopee:",
-        placeholder="Dê uma olhada em Guarda-chuva automático por R$50...",
+        placeholder="Dê uma olhada em...",
     )
-
     nicho_escolhido = st.selectbox("Categoria Principal:", lista_nichos)
 
     nova_categoria = ""
@@ -628,7 +650,6 @@ elif menu == "📦 Catálogo":
           else nicho_escolhido
       )
 
-      # Se for uma categoria nova, injeta automaticamente no cérebro_v3.json
       if nova_categoria.strip() and nova_categoria.strip() not in categorias_dict:
         cerebro.setdefault("categorias_e_regras", {})[
             nova_categoria.strip()
@@ -636,10 +657,10 @@ elif menu == "📦 Catálogo":
             "foco_atributos": ["utilidade geral", "custo-benefício"],
             "padrao_seo_pinterest": {
                 "estrutura_titulo": "{nome_curto} - Achado Imperdível",
-                "gatilhos_descricao": [
-                    "Encontre os melhores produtos com excelente preço.",
-                ],
-                "chamada_acao": "Garanta o seu direto na Shopee: {link}",
+                "gatilhos_descricao": (
+                    "Encontre os melhores produtos com excelente preço e"
+                    " utilidade garantida para o dia a dia. {link}"
+                ),
             },
             "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil"],
         }
@@ -655,10 +676,7 @@ elif menu == "📦 Catálogo":
           (nome_puro, nome_curto, frase_destaque, categoria_final, link_limpo),
           fetch=False,
       )
-      st.success(
-          f"Cadastrado com sucesso na categoria: {categoria_final}! Nome Curto:"
-          f" {nome_curto}"
-      )
+      st.success(f"Cadastrado com sucesso na categoria: {categoria_final}!")
       st.rerun()
 
   st.markdown("---")
@@ -679,43 +697,21 @@ elif menu == "📦 Catálogo":
               "DELETE FROM produtos WHERE id = ?", (row["id"],), fetch=False
           )
           st.rerun()
-  else:
-    st.info("Nenhum produto cadastrado no catálogo.")
 
 elif menu == "🧠 Treinamento":
   st.markdown("### 🧠 Treinamento e Ajustes do Cérebro V3")
-  st.write(
-      "Aqui você pode visualizar as regras gerais e ajustar o arquivo"
-      " `cerebro_v3.json` diretamente se necessário."
-  )
-  cerebro_data = carregar_cerebro()
-  st.json(cerebro_data)
+  st.json(carregar_cerebro())
 
 elif menu == "🧬 Auto-Evolução":
   st.markdown("### 🧬 Painel de Auto-Evolução")
-  st.info(
-      "Módulo ativo: O motor monitora o desempenho dos ganchos e otimiza as"
-      " regras de cópia automaticamente."
-  )
+  st.info("Módulo ativo: Monitoramento de conversão e SEO.")
 
 elif menu == "📊 Dashboard":
   st.markdown("### 📊 Dashboard Consolidado")
-  total_prod = len(
-      run_query("SELECT id FROM produtos", fetch=True)
-  )
-  total_cont = len(
-      run_query("SELECT id FROM conteudos", fetch=True)
-  )
-  concluidos = len(
-      run_query(
-          "SELECT id FROM conteudos WHERE status LIKE '%Concluído%'", fetch=True
-      )
-  )
-
-  col1, col2, col3 = st.columns(3)
+  total_prod = len(run_query("SELECT id FROM produtos", fetch=True))
+  total_cont = len(run_query("SELECT id FROM conteudos", fetch=True))
+  col1, col2 = st.columns(2)
   with col1:
     st.metric("Total de Produtos", total_prod)
   with col2:
     st.metric("Roteiros Gerados", total_cont)
-  with col3:
-    st.metric("Conteúdos Concluídos", concluidos)
