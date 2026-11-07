@@ -105,7 +105,7 @@ menu = st.radio(
 st.markdown("---")
 
 
-# --- GERENCIAMENTO DO CÉREBRO JSON (COM SUPORTE A GRUPOS REAIS DO PINTEREST) ---
+# --- GERENCIAMENTO DO CÉREBRO JSON ---
 CEREBRO_FILE = "cerebro_v3.json"
 
 
@@ -113,25 +113,13 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "8.0",
-            "objetivo": "Matriz de inteligência alinhada às pastas do Pinterest.",
+            "versao": "10.0",
+            "objetivo": "Matriz de inteligência de conteúdo",
         },
         "categorias_e_regras": {
-            "Beleza e Cuidados Pessoais": {
-                "tags_obrigatorias": ["#achadosshopee", "#beleza", "#cuidadopessoal"],
-            },
             "Utilidades para Casa": {
                 "tags_obrigatorias": ["#achadosshopee", "#utilidadesdomesticas", "#donadecasa"],
-            },
-            "Maternidade e Bebê": {
-                "tags_obrigatorias": ["#achadosshopee", "#maternidade", "#bebe"],
-            },
-            "Moda e Estilo": {
-                "tags_obrigatorias": ["#achadosshopee", "#moda", "#lookdodia"],
-            },
-            "Eletrônicos e Tech": {
-                "tags_obrigatorias": ["#achadosshopee", "#tecnologia", "#gadgets"],
-            },
+            }
         },
     }
     with open(CEREBRO_FILE, "w", encoding="utf-8") as f:
@@ -212,7 +200,7 @@ def run_query(query, params=(), fetch=True):
   conn.close()
 
 
-# --- EXTRATOR DE ATRIBUTOS ESPECÍFICO ---
+# --- EXTRATOR DE ATRIBUTOS ESPECÍFICO E REAL ---
 def limpar_e_extrair_shopee(texto_bruto):
   link_puro = texto_bruto
   for p in texto_bruto.split():
@@ -233,6 +221,7 @@ def limpar_e_extrair_shopee(texto_bruto):
 
   t_lower = nome_puro.lower()
 
+  # Detecção focada para não inventar bobagem
   if any(k in t_lower for k in ["shampoo", "condicionador", "cabelo", "infantil", "infante", "banho"]):
     frase_destaque = "Fórmula dermatologicamente testada, cheirinho duradouro e cuidado delicado para o dia a dia."
   elif any(k in t_lower for k in ["creatina", "whey", "suplemento", "proteina", "treino"]):
@@ -242,7 +231,7 @@ def limpar_e_extrair_shopee(texto_bruto):
   elif any(k in t_lower for k in ["omo", "surf", "coala", "limpeza", "faxina", "desinfetante"]):
     frase_destaque = "Alto rendimento e poder de limpeza superior para deixar tudo limpo e perfumado."
   else:
-    frase_destaque = "Design funcional, excelente acabamento e praticidade garantida."
+    frase_destaque = "Design funcional, excelente acabamento e praticidade garantida para o seu dia a dia."
 
   if any(k in t_lower for k in ["caixa", "som", "fone", "smart", "automático", "robo", "aspirador", "kit"]):
     insight_formato = "🎬 FORMATO IDEAL: VÍDEO DINÂMICO (Demonstração prática em funcionamento gera muito mais cliques)."
@@ -279,9 +268,11 @@ def gerar_textos_hibridos(
   insta_tit = f"Dica de Ouro: {nome_curto}"
   insta_leg = f"✨ Sabe aquele produto que vale cada centavo?\n\nO {nome_curto} entrega exatamente o que promete. {destaque} Praticidade e qualidade que fazem toda a diferença.\n\n🔗 Corre no link da BIO para garantir o seu!\n\n{tags}"
 
+  # Pinterest SEO Rico (~800 caracteres estruturados)
   pin_tit = f"{nome_curto} - Detalhes, Benefícios e Onde Comprar"
   pin_desc = f"Procurando por {nome_longo}? Descubra todos os diferenciais desta excelente opção na categoria {categoria}. {destaque} Desenvolvido com foco total em qualidade, eficiência e utilidade real para o seu dia a dia. Excelente escolha para quem busca o melhor custo-benefício do mercado sem abrir mão de um desempenho impecável. Confira as avaliações, veja todos os detalhes técnicos e garanta o seu com entrega segura e preço promocional direto na plataforma oficial. Não perca tempo e adquira já o seu pelo link direto: {link}\n\nEste item foi selecionado estrategicamente em nossa curadoria para entregar a melhor experiência de compra. Explore mais novidades e recomendações exclusivas em nossa vitrine oficial.\n\nTermos relacionados e tags: {tags}"
 
+  # Shopee estrito (<150 caracteres)
   shp_leg = f"Imperdível! {nome_curto}. Confira na vitrine oficial 👇\n{link} {tags}"
   if len(shp_leg) > 145:
     shp_leg = f"Imperdível! Vitrine 👇\n{link} #achados"
@@ -344,7 +335,7 @@ if menu == "🎬 Gerar":
 
         _, _, _, _, insight_gerado = limpar_e_extrair_shopee(n_longo)
 
-        with st.spinner("Processando roteiros customizados para o produto..."):
+        with st.spinner("Processando roteiros customizados..."):
           (
               estrategia,
               tik_tit,
@@ -487,11 +478,11 @@ elif menu == "📦 Catálogo":
         placeholder="Dê uma olhada em Kit Shampoo Infantil por R$35...",
     )
     
-    nicho_escolhido = st.selectbox("Grupo / Pasta do Pinterest:", lista_nichos)
+    nicho_escolhido = st.selectbox("Pasta / Grupo do Pinterest:", lista_nichos)
 
     nova_categoria = ""
     if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
-      nova_categoria = st.text_input("Digite o nome limpo e exato da pasta (ex: Jogos, K-Pop, Beleza e Cuidados):")
+      nova_categoria = st.text_input("Digite o nome limpo e exato da pasta (ex: Jogos, K-Pop, etc.):")
 
     enviar = st.form_submit_button("Analisar e Salvar no Catálogo 🚀")
 
@@ -502,7 +493,7 @@ elif menu == "📦 Catálogo":
           else nicho_escolhido
       )
 
-      # CORREÇÃO CRUCIAL: Salva e persiste a nova categoria no arquivo cerebro_v3.json instantaneamente
+      # Persiste a nova categoria criada no arquivo cerebro_v3.json instantaneamente
       if nova_categoria.strip():
         cat_limpa = nova_categoria.strip()
         if cat_limpa not in categorias_dict:
