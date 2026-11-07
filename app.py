@@ -33,40 +33,60 @@ st.markdown(
     .metric-card { background-color: #282828; padding: 15px; border-radius: 10px; text-align: center; border-bottom: 4px solid #FF4500; }
     [data-testid="collapsedControl"] { display: none; }
     
-    /* Correção para o Banner não estourar em telas de tablet/desktop */
+    /* Controle rigoroso do Banner para não estourar no tablet/desktop */
     .banner-container {
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         width: 100%;
+        text-align: center;
+        margin-bottom: 10px;
     }
     .banner-container img {
-        max-width: 600px !important;
+        max-width: 500px !important;
         width: 100% !important;
         border-radius: 10px;
+        height: auto !important;
+    }
+    .app-title {
+        font-size: 28px;
+        font-weight: bold;
+        color: #FF4500;
+        margin-top: 10px;
+        margin-bottom: 0px;
+    }
+    .app-subtitle {
+        color: #FF7F50;
+        font-size: 14px;
+        margin-top: -5px;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# --- CABEÇALHO PRINCIPAL COM BANNER CONTROLADO ---
+# --- CABEÇALHO COM LOGO/BANNER CONTROLADO E TÍTULO GARANTIDO ---
 st.markdown('<div class="banner-container">', unsafe_allow_html=True)
+
+imagem_exibida = False
 try:
     if os.path.exists("banner.jpg"):
         st.image("banner.jpg")
+        imagem_exibida = True
     elif os.path.exists("banner.png"):
         st.image("banner.png")
-    else:
-        st.title("Central Achados do Felipe")
-        st.markdown("<p style='color: #FF7F50; margin-top: -15px; text-align: center;'>As Melhores Ofertas</p>", unsafe_allow_html=True)
+        imagem_exibida = True
 except:
-    st.title("Central Achados do Felipe")
-st.markdown('</div>', unsafe_allow_html=True)
+    pass
 
+# Se não houver imagem de banner física, ou para garantir identidade visual sempre presente:
+st.markdown('<p class="app-title">🔎 Central Achados do Felipe</p>', unsafe_allow_html=True)
+st.markdown('<p class="app-subtitle">Sua Máquina de Conteúdo e Automação Offline</p>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
 st.markdown("---")
 
-# MENU DE NAVEGAÇÃO
 menu = st.radio(
     "Navegação Rápida", 
     ["🎬 Gerar", "📋 Pendentes", "📦 Catálogo", "🧠 Treinamento", "🧬 Auto-Evolução", "📊 Dashboard"], 
@@ -80,12 +100,20 @@ CEREBRO_FILE = "cerebro_v3.json"
 def carregar_cerebro():
     if not os.path.exists(CEREBRO_FILE):
         default_base = {
-            "Utilidades & Acessórios (Guarda-chuva, etc)": {
-                "tags": "#achadosshopee #utilidades #achadinhos #shopeebrasil #dicautil",
-                "ganchos_tik": ["O item mais útil que você vai ver hoje:", "Como se salvar do perrengue com o {nome}:", "Todo mundo precisa ter um {nome} em casa:"],
-                "legenda_tik": ["😱 Salva-vidas em qualquer situação! Garanta na sacolinha amarela 👇\n{link}\n\n{tags}"],
-                "titulos_insta": ["Utilidade Pública 🛡️", "Praticidade com {nome}"],
-                "legenda_insta": ["🛡️ Sabe aquele item que parece simples, mas resolve a sua vida quando você mais precisa?\n\nO {nome} é exatamente assim! {destaque}\n\n🔗 Corre no link da BIO para garantir o seu.\n\n{tags}"]
+            "Utilidades & Acessórios": {
+                "tags": "#achadosshopee #utilidades #achadinhos #shopeebrasil #dicautil #solucoes",
+                "ganchos_tik": [
+                    "Você não vai acreditar no que o {nome} consegue resolver no dia a dia:",
+                    "O item mais engenhoso que encontrei na Shopee:",
+                    "Como eu sofria antes de conhecer o {nome}:"
+                ],
+                "legenda_tik": [
+                    "😱 Chega de perrengues! {destaque} Garanta o seu na sacolinha amarela antes que acabe 👇\n{link}\n\n{tags}"
+                ],
+                "titulos_insta": ["Praticidade Real 🛡️", "O Item que Faltava: {nome}"],
+                "legenda_insta": [
+                    "🛡️ Sabe aquele produto que parece simples, mas muda completamente a sua rotina?\n\nO {nome} é exatamente isso. {destaque} Prático, funcional e com um preço surreal na Shopee.\n\n🔗 Corre no link da BIO para garantir o seu com segurança!\n\n{tags}"
+                ]
             },
             "Geral (Coringa)": {
                 "tags": "#achados #achadinhos #shopeebrasil #comprasshopee",
@@ -159,7 +187,7 @@ def run_query(query, params=(), fetch=True):
   conn.commit()
   conn.close()
 
-# --- CONFIGURAÇÃO DA IA ATUALIZADA (CORREÇÃO DO ERRO 404) ---
+# --- CONFIGURAÇÃO DA IA ---
 IA_DISPONIVEL = False
 client = None
 try:
@@ -170,7 +198,7 @@ try:
 except Exception:
   pass
 
-# --- MOTOR DE ATRIBUTOS E EXTRATOR ---
+# --- MOTOR DE ATRIBUTOS E EXTRATOR INTELIGENTE ---
 def limpar_e_extrair_shopee(texto_bruto):
     link_puro = texto_bruto
     for p in texto_bruto.split():
@@ -187,22 +215,23 @@ def limpar_e_extrair_shopee(texto_bruto):
     
     atributos = []
     t_lower = nome_puro.lower()
+    
     bat_match = re.search(r'(\d+)\s*h', t_lower)
     if bat_match: atributos.append(f"bateria de {bat_match.group(1)}h")
     elif "bateria" in t_lower: atributos.append("bateria de longa duração")
     
-    if "ip" in t_lower or "água" in t_lower: atributos.append("proteção contra água")
-    if "bluetooth" in t_lower or "sem fio" in t_lower: atributos.append("conexão sem fio")
-    if "gb" in t_lower: atributos.append("alto armazenamento")
-    if "automático" in t_lower or "automatico" in t_lower: atributos.append("abertura automática")
-    if "forte" in t_lower or "reforçado" in t_lower: atributos.append("estrutura reforçada contra o vento")
+    if "ip" in t_lower or "água" in t_lower: atributos.append("proteção total contra água")
+    if "bluetooth" in t_lower or "sem fio" in t_lower: atributos.append("conexão sem fio de alta estabilidade")
+    if "automático" in t_lower or "automatico" in t_lower: atributos.append("sistema de acionamento automático")
+    if "vento" in t_lower or "reforçado" in t_lower: atributos.append("estrutura reforçada contra ventos fortes")
+    if "uv" in t_lower or "proteção solar" in t_lower: atributos.append("proteção contra raios UV")
     
-    frase_destaque = "Design impecável e alta qualidade!"
+    frase_destaque = "Design moderno, alta durabilidade e acabamento premium."
     if atributos:
-        frase_destaque = "Ele conta com " + " e ".join(atributos[:2]) + "!"
+        frase_destaque = f"Ele conta com { ' e '.join(atributos[:2]) }, garantindo máxima eficiência no uso diário!"
 
     palavras = nome_puro.split()
-    nome_curto = " ".join(palavras[:4]).rstrip(",-:")
+    nome_curto = " ".join(palavras[:5]).rstrip(",-:")
     if not nome_curto:
         nome_curto = "Achado Imperdível"
         nome_puro = "Produto Shopee"
@@ -217,7 +246,7 @@ def gerar_textos_hibridos(nome_curto, nome_longo, link, categoria, destaque, usa
     
     if usar_ia_forcado and IA_DISPONIVEL:
         try:
-            prompt = f"""Gere textos altamente persuasivos para afiliado baseados nas especificações reais.
+            prompt = f"""Gere textos altamente persuasivos para afiliado baseados nas especificações reais, com português natural e fluído.
 Produto Completo: '{nome_longo}'
 Link: {link}
 Categoria: {categoria}
@@ -227,12 +256,11 @@ TIK_TITULO: Gancho curto e magnético para TikTok
 TIK_LEGENDA: Legenda para TikTok com sacolinha e tags ({tags})
 INSTA_TITULO: Título chamativo para Capa do Reels
 INSTA_LEGENDA: Legenda rica e persuasiva para Instagram com link na bio e tags ({tags})
-PIN_TITULO: Título rico em SEO para Pinterest (até 100 caracteres)
+PIN_TITULO: Título rico em SEO para Pinterest
 PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest usando todas as especificações do produto, com chamada para ação e tags ({tags})
 SHP_LEGENDA: Legenda curta para Shopee Vídeo com link
 PROMPT_IA: Prompt em inglês para imagem"""
             
-            # Usando modelo padrão atualizado para evitar erro 404
             res = client.models.generate_content(model="gemini-2.5-flash", contents=prompt).text
             
             t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia = "", "", "", "", "", "", "", ""
@@ -254,10 +282,10 @@ PROMPT_IA: Prompt em inglês para imagem"""
         except Exception as e:
             st.toast(f"Aviso de IA: {e}")
 
-    tik_tit_template = random.choice(cat_data.get("ganchos_tik", ["Olha esse achado:"]))
+    tik_tit_template = random.choice(cat_data.get("ganchos_tik", ["Olha esse achado imperdível:"]))
     tik_leg_template = random.choice(cat_data.get("legenda_tik", ["Garanta na sacolinha 👇\n{link}\n\n{tags}"]))
     insta_tit_template = random.choice(cat_data.get("titulos_insta", ["Achado Imperdível ✨"]))
-    insta_leg_template = random.choice(cat_data.get("legenda_insta", ["Confira o {nome}! {destaque}\n🔗 Link na bio.\n\n{tags}"]))
+    insta_leg_template = random.choice(cat_data.get("legenda_insta", ["Confira os detalhes de {nome}! {destaque}\n🔗 Link na bio.\n\n{tags}"]))
     
     tik_tit = tik_tit_template.replace("{nome}", nome_curto).replace("{destaque}", destaque)
     tik_leg = tik_leg_template.replace("{nome}", nome_curto).replace("{link}", link).replace("{tags}", tags).replace("{destaque}", destaque)
@@ -266,7 +294,7 @@ PROMPT_IA: Prompt em inglês para imagem"""
     insta_leg = insta_leg_template.replace("{nome}", nome_curto).replace("{link}", link).replace("{tags}", tags).replace("{destaque}", destaque)
     
     pin_tit = f"{nome_curto} - Review Completo e Onde Comprar"
-    pin_desc = f"Procurando por {nome_longo}? Descubra todos os detalhes técnicos deste super produto da categoria {categoria}. {destaque} O item ideal para quem busca o máximo de desempenho e qualidade. Aproveite a oferta oficial e confira o link de desconto direto: {link} \n\nTags recomendadas: {tags}"
+    pin_desc = f"Procurando por {nome_longo}? Descubra todos os detalhes e diferenciais deste excelente produto da categoria {categoria}. {destaque} O item ideal para quem busca praticidade, durabilidade e excelente custo-benefício. Aproveite a oferta oficial e confira o link de desconto direto: {link} \n\nTags recomendadas: {tags}"
     
     shp_leg = f"Achado imperdível! {nome_curto}. Confira na vitrine 👇\n{link} #achados"
     if len(shp_leg) > 150:
@@ -274,13 +302,12 @@ PROMPT_IA: Prompt em inglês para imagem"""
         
     prompt_ia = f"UGC aesthetic video showcasing {nome_curto}, trendy lifestyle background, 4k"
     
-    return "Motor Offline Inteligente (Rico em SEO)", tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
+    return "Motor Offline Inteligente (Aprimorado)", tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
 
 # ==========================================
 # TELAS DO SISTEMA
 # ==========================================
 
-# --- TELA 1: GERADOR ---
 if menu == "🎬 Gerar":
   st.markdown("### 🎬 Central de Geração Estratégica")
 
@@ -292,7 +319,7 @@ if menu == "🎬 Gerar":
       
       modo_geracao = st.radio(
           "Escolha o Motor de Geração:",
-          ["⚡ Motor Offline Inteligente (Garantido e Rico)", "🤖 Tentar Forçar com Inteligência Artificial (Gemini)"],
+          ["⚡ Motor Offline Inteligente (Garantido e Natural)", "🤖 Tentar Forçar com Inteligência Artificial (Gemini)"],
           index=0
       )
       
@@ -309,7 +336,7 @@ if menu == "🎬 Gerar":
 
         usar_ia = True if "Inteligência Artificial" in modo_geracao else False
 
-        with st.spinner("Processando roteiros e otimizando SEO..."):
+        with st.spinner("Processando roteiros e otimizando o texto..."):
             estrategia, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia = gerar_textos_hibridos(
                 n_curto, n_longo, link_af, nicho, destaque, usar_ia_forcado=usar_ia
             )
@@ -324,7 +351,6 @@ if menu == "🎬 Gerar":
   else:
     st.info("Catálogo vazio ou todos os produtos já gerados!")
 
-# --- TELA 2: PENDENTES ---
 elif menu == "📋 Pendentes":
   st.markdown("### 📋 Central de Pendentes")
 
@@ -356,7 +382,6 @@ elif menu == "📋 Pendentes":
   else:
     st.info("Nenhum conteúdo pendente.")
 
-# --- TELA 3: CATÁLOGO ---
 elif menu == "📦 Catálogo":
   st.markdown("### 📦 Catálogo de Produtos")
   cerebro = carregar_cerebro()
@@ -394,7 +419,6 @@ elif menu == "📦 Catálogo":
           st.rerun()
       st.markdown("---")
 
-# --- TELA 4: TREINAMENTO ---
 elif menu == "🧠 Treinamento":
   st.markdown("### 🧠 Categorias Existentes no Cérebro")
   cerebro = carregar_cerebro()
@@ -402,13 +426,12 @@ elif menu == "🧠 Treinamento":
       st.markdown(f"- 📁 **{cat}**")
   st.info("Dica: Use a aba '🧬 Auto-Evolução' para criar novas categorias automaticamente com a IA.")
 
-# --- TELA 5: AUTO-EVOLUÇÃO (COM CORREÇÃO DO MODELO) ---
 elif menu == "🧬 Auto-Evolução":
   st.markdown("### 🧬 Auto-Evolução do Cérebro Offline")
-  st.markdown("Digite abaixo o nome de uma nova categoria ou nicho (Ex: *Utilidades Domésticas*, *Moda e Calçados*, *Ferramentas*). A IA vai estruturar a copy perfeita e injetar no seu arquivo JSON de forma permanente!")
+  st.markdown("Digite abaixo o nome de uma nova categoria ou nicho (Ex: *Utilidades e Ferramentas*, *Moda e Acessórios*).")
 
   with st.form("form_auto_evolucao"):
-    novo_nicho = st.text_input("Nome da Nova Categoria/Nicho:", placeholder="Ex: Utilidades Domésticas")
+    novo_nicho = st.text_input("Nome da Nova Categoria/Nicho:", placeholder="Ex: Utilidades e Ferramentas")
     btn_evoluir = st.form_submit_button("Gerar e Injetar Categoria no Cérebro 🧬")
 
     if btn_evoluir and novo_nicho:
@@ -438,7 +461,6 @@ Responda APENAS com um objeto JSON válido, sem markdown extra, contendo exatame
     ]
   }}
 }}"""
-            # Atualizado para o modelo padrão atual da SDK
             resposta_ia = client.models.generate_content(model="gemini-2.5-flash", contents=prompt_evolucao).text
             
             limpo = resposta_ia.replace("```json", "").replace("```", "").strip()
@@ -452,7 +474,6 @@ Responda APENAS com um objeto JSON válido, sem markdown extra, contendo exatame
           except Exception as e:
             st.error(f"Erro ao processar a evolução automática: {e}")
 
-# --- TELA 6: DASHBOARD ---
 elif menu == "📊 Dashboard":
   st.markdown("### 📊 Dashboard & Metas")
   total = len(run_query("SELECT * FROM conteudos WHERE status LIKE '%Concluído%'"))
