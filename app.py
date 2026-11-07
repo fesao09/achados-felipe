@@ -32,24 +32,41 @@ st.markdown(
     .card { background-color: #282828; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border-left: 5px solid #FF4500; }
     .metric-card { background-color: #282828; padding: 15px; border-radius: 10px; text-align: center; border-bottom: 4px solid #FF4500; }
     [data-testid="collapsedControl"] { display: none; }
+    
+    /* Correção para o Banner não estourar em telas de tablet/desktop */
+    .banner-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+    }
+    .banner-container img {
+        max-width: 600px !important;
+        width: 100% !important;
+        border-radius: 10px;
+    }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# --- CABEÇALHO PRINCIPAL ---
+# --- CABEÇALHO PRINCIPAL COM BANNER CONTROLADO ---
+st.markdown('<div class="banner-container">', unsafe_allow_html=True)
 try:
-    st.image("banner.jpg", use_container_width=True)
-except:
-    try:
-        st.image("banner.png", use_container_width=True)
-    except:
+    if os.path.exists("banner.jpg"):
+        st.image("banner.jpg")
+    elif os.path.exists("banner.png"):
+        st.image("banner.png")
+    else:
         st.title("Central Achados do Felipe")
-        st.markdown("<p style='color: #FF7F50; margin-top: -15px;'>As Melhores Ofertas</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #FF7F50; margin-top: -15px; text-align: center;'>As Melhores Ofertas</p>", unsafe_allow_html=True)
+except:
+    st.title("Central Achados do Felipe")
+st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
-# MENU DE NAVEGAÇÃO AMPLIADO COM A ABA DE AUTO-EVOLUÇÃO
+# MENU DE NAVEGAÇÃO
 menu = st.radio(
     "Navegação Rápida", 
     ["🎬 Gerar", "📋 Pendentes", "📦 Catálogo", "🧠 Treinamento", "🧬 Auto-Evolução", "📊 Dashboard"], 
@@ -63,6 +80,13 @@ CEREBRO_FILE = "cerebro_v3.json"
 def carregar_cerebro():
     if not os.path.exists(CEREBRO_FILE):
         default_base = {
+            "Utilidades & Acessórios (Guarda-chuva, etc)": {
+                "tags": "#achadosshopee #utilidades #achadinhos #shopeebrasil #dicautil",
+                "ganchos_tik": ["O item mais útil que você vai ver hoje:", "Como se salvar do perrengue com o {nome}:", "Todo mundo precisa ter um {nome} em casa:"],
+                "legenda_tik": ["😱 Salva-vidas em qualquer situação! Garanta na sacolinha amarela 👇\n{link}\n\n{tags}"],
+                "titulos_insta": ["Utilidade Pública 🛡️", "Praticidade com {nome}"],
+                "legenda_insta": ["🛡️ Sabe aquele item que parece simples, mas resolve a sua vida quando você mais precisa?\n\nO {nome} é exatamente assim! {destaque}\n\n🔗 Corre no link da BIO para garantir o seu.\n\n{tags}"]
+            },
             "Geral (Coringa)": {
                 "tags": "#achados #achadinhos #shopeebrasil #comprasshopee",
                 "ganchos_tik": ["Olha esse achado imperdível:"],
@@ -135,8 +159,9 @@ def run_query(query, params=(), fetch=True):
   conn.commit()
   conn.close()
 
-# --- CONFIGURAÇÃO DA IA ---
+# --- CONFIGURAÇÃO DA IA ATUALIZADA (CORREÇÃO DO ERRO 404) ---
 IA_DISPONIVEL = False
+client = None
 try:
   from google import genai
   api_key = st.secrets["GEMINI_API_KEY"]
@@ -169,6 +194,8 @@ def limpar_e_extrair_shopee(texto_bruto):
     if "ip" in t_lower or "água" in t_lower: atributos.append("proteção contra água")
     if "bluetooth" in t_lower or "sem fio" in t_lower: atributos.append("conexão sem fio")
     if "gb" in t_lower: atributos.append("alto armazenamento")
+    if "automático" in t_lower or "automatico" in t_lower: atributos.append("abertura automática")
+    if "forte" in t_lower or "reforçado" in t_lower: atributos.append("estrutura reforçada contra o vento")
     
     frase_destaque = "Design impecável e alta qualidade!"
     if atributos:
@@ -205,7 +232,8 @@ PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest usando todas
 SHP_LEGENDA: Legenda curta para Shopee Vídeo com link
 PROMPT_IA: Prompt em inglês para imagem"""
             
-            res = client.models.generate_content(model="gemini-1.5-flash", contents=prompt).text
+            # Usando modelo padrão atualizado para evitar erro 404
+            res = client.models.generate_content(model="gemini-2.5-flash", contents=prompt).text
             
             t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia = "", "", "", "", "", "", "", ""
             for l in res.split("\n"):
@@ -223,8 +251,8 @@ PROMPT_IA: Prompt em inglês para imagem"""
             
             if t_tit and p_desc:
                 return "Gerado via IA Híbrida 🤖", t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia
-        except:
-            pass
+        except Exception as e:
+            st.toast(f"Aviso de IA: {e}")
 
     tik_tit_template = random.choice(cat_data.get("ganchos_tik", ["Olha esse achado:"]))
     tik_leg_template = random.choice(cat_data.get("legenda_tik", ["Garanta na sacolinha 👇\n{link}\n\n{tags}"]))
@@ -335,7 +363,7 @@ elif menu == "📦 Catálogo":
   nichos_disponiveis = list(cerebro.keys())
 
   with st.form("form_cat_manual"):
-    texto_zap = st.text_area("Cole a mensagem do WhatsApp ou Link Shopee:", placeholder="Dê uma olhada em Smart TV 50 polegadas por R$2.000...")
+    texto_zap = st.text_area("Cole a mensagem do WhatsApp ou Link Shopee:", placeholder="Dê uma olhada em Guarda-chuva automático por R$50...")
     nicho_prod = st.selectbox("Categoria:", nichos_disponiveis)
     
     enviar = st.form_submit_button("Analisar e Salvar no Catálogo 🚀")
@@ -372,22 +400,22 @@ elif menu == "🧠 Treinamento":
   cerebro = carregar_cerebro()
   for cat in cerebro.keys():
       st.markdown(f"- 📁 **{cat}**")
-  st.info("Dica: Use a nova aba '🧬 Auto-Evolução' para criar novas categorias automaticamente com a IA.")
+  st.info("Dica: Use a aba '🧬 Auto-Evolução' para criar novas categorias automaticamente com a IA.")
 
-# --- TELA 5: AUTO-EVOLUÇÃO (NOVO RECURSO INTELIGENTE) ---
+# --- TELA 5: AUTO-EVOLUÇÃO (COM CORREÇÃO DO MODELO) ---
 elif menu == "🧬 Auto-Evolução":
   st.markdown("### 🧬 Auto-Evolução do Cérebro Offline")
-  st.markdown("Digite abaixo o nome de uma nova categoria ou nicho que você deseja ensinar ao aplicativo (Ex: *Smart TVs e Eletro*, *Camping e Lazer*, *Mesas e Móveis*, *Automotivo*). A IA vai estruturar a copy perfeita e injetar no seu arquivo JSON de forma permanente!")
+  st.markdown("Digite abaixo o nome de uma nova categoria ou nicho (Ex: *Utilidades Domésticas*, *Moda e Calçados*, *Ferramentas*). A IA vai estruturar a copy perfeita e injetar no seu arquivo JSON de forma permanente!")
 
   with st.form("form_auto_evolucao"):
-    novo_nicho = st.text_input("Nome da Nova Categoria/Nicho:", placeholder="Ex: Smart TVs e Telas")
+    novo_nicho = st.text_input("Nome da Nova Categoria/Nicho:", placeholder="Ex: Utilidades Domésticas")
     btn_evoluir = st.form_submit_button("Gerar e Injetar Categoria no Cérebro 🧬")
 
     if btn_evoluir and novo_nicho:
       if not IA_DISPONIVEL:
-        st.error("A API do Gemini não está disponível no momento para gerar o novo nicho.")
+        st.error("A API do Gemini não está configurada ou disponível no momento.")
       else:
-        with st.spinner(f"A Inteligência Artificial está estudando o nicho '{novo_nicho}' e criando as regras de copy..."):
+        with st.spinner(f"A Inteligência Artificial está criando as regras de copy para '{novo_nicho}'..."):
           try:
             prompt_evolucao = f"""Crie uma estrutura JSON de copywriting de alta conversão para o nicho de e-commerce/afiliados chamado '{novo_nicho}'.
 Responda APENAS com um objeto JSON válido, sem markdown extra, contendo exatamente estas chaves:
@@ -410,18 +438,17 @@ Responda APENAS com um objeto JSON válido, sem markdown extra, contendo exatame
     ]
   }}
 }}"""
-            resposta_ia = client.models.generate_content(model="gemini-1.5-flash", contents=prompt_evolucao).text
+            # Atualizado para o modelo padrão atual da SDK
+            resposta_ia = client.models.generate_content(model="gemini-2.5-flash", contents=prompt_evolucao).text
             
-            # Limpa formatações de bloco de código caso a IA mande ```json ... ```
             limpo = resposta_ia.replace("```json", "").replace("```", "").strip()
             novo_bloco = json.loads(limpo)
             
-            # Carrega o cérebro atual, atualiza com a nova categoria e salva
             cerebro_atual = carregar_cerebro()
             cerebro_atual.update(novo_bloco)
             salvar_cerebro(cerebro_atual)
             
-            st.success(f"🧬 Sucesso absoluto! A categoria '{novo_nicho}' foi aprendida e injetada no seu arquivo JSON com sucesso. Ela já está disponível no Catálogo!")
+            st.success(f"🧬 Sucesso absoluto! A categoria '{novo_nicho}' foi aprendida e injetada no seu arquivo JSON.")
           except Exception as e:
             st.error(f"Erro ao processar a evolução automática: {e}")
 
