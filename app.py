@@ -105,7 +105,7 @@ menu = st.radio(
 st.markdown("---")
 
 
-# --- GERENCIAMENTO DO CÉREBRO JSON ---
+# --- GERENCIAMENTO DO CÉREBRO JSON (COM SUPORTE A GRUPOS REAIS DO PINTEREST) ---
 CEREBRO_FILE = "cerebro_v3.json"
 
 
@@ -113,20 +113,38 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "7.0",
-            "objetivo": "Matriz de inteligência real e dinâmica.",
+            "versao": "8.0",
+            "objetivo": "Matriz de inteligência alinhada às pastas do Pinterest.",
         },
         "categorias_e_regras": {
-            "Utilidades & Acessórios": {
-                "tags_obrigatorias": ["#achadosshopee", "#utilidades"],
-            }
+            "Beleza e Cuidados Pessoais": {
+                "tags_obrigatorias": ["#achadosshopee", "#beleza", "#cuidadopessoal"],
+            },
+            "Utilidades para Casa": {
+                "tags_obrigatorias": ["#achadosshopee", "#utilidadesdomesticas", "#donadecasa"],
+            },
+            "Maternidade e Bebê": {
+                "tags_obrigatorias": ["#achadosshopee", "#maternidade", "#bebe"],
+            },
+            "Moda e Estilo": {
+                "tags_obrigatorias": ["#achadosshopee", "#moda", "#lookdodia"],
+            },
+            "Eletrônicos e Tech": {
+                "tags_obrigatorias": ["#achadosshopee", "#tecnologia", "#gadgets"],
+            },
         },
     }
     with open(CEREBRO_FILE, "w", encoding="utf-8") as f:
       json.dump(default_base, f, indent=4, ensure_ascii=False)
 
-  with open(CEREBRO_FILE, "r", encoding="utf-8") as f:
-    return json.load(f)
+  try:
+    with open(CEREBRO_FILE, "r", encoding="utf-8") as f:
+      dados = json.load(f)
+      if "categorias_e_regras" not in dados:
+        dados["categorias_e_regras"] = {}
+      return dados
+  except:
+    return {"categorias_e_regras": {}}
 
 
 def salvar_cerebro(dados):
@@ -194,7 +212,7 @@ def run_query(query, params=(), fetch=True):
   conn.close()
 
 
-# --- EXTRATOR DE ATRIBUTOS REAL E ESPECÍFICO ---
+# --- EXTRATOR DE ATRIBUTOS ESPECÍFICO ---
 def limpar_e_extrair_shopee(texto_bruto):
   link_puro = texto_bruto
   for p in texto_bruto.split():
@@ -215,19 +233,17 @@ def limpar_e_extrair_shopee(texto_bruto):
 
   t_lower = nome_puro.lower()
 
-  # Detecção cirúrgica baseada no que o produto realmente é (sem respostas genéricas)
-  if any(k in t_lower for k in ["shampoo", "condicionador", "cabelo", "infantil", "infante", "infancia", "banho"]):
-    frase_destaque = "Fórmula dermatologicamente testada, cheirinho duradouro e cuidado delicado para os fios dos pequenos."
+  if any(k in t_lower for k in ["shampoo", "condicionador", "cabelo", "infantil", "infante", "banho"]):
+    frase_destaque = "Fórmula dermatologicamente testada, cheirinho duradouro e cuidado delicado para o dia a dia."
   elif any(k in t_lower for k in ["creatina", "whey", "suplemento", "proteina", "treino"]):
     frase_destaque = "Alta pureza e concentração ideal para turbinar seus resultados diários."
   elif any(k in t_lower for k in ["creamy", "cerave", "principia", "sérum", "protetor solar", "pele"]):
-    frase_destaque = "Ativos de alta performance para uma rotina de skincare impecável e resultados visíveis."
+    frase_destaque = "Ativos de alta performance para uma rotina de cuidados impecável e resultados visíveis."
   elif any(k in t_lower for k in ["omo", "surf", "coala", "limpeza", "faxina", "desinfetante"]):
     frase_destaque = "Alto rendimento e poder de limpeza superior para deixar tudo limpo e perfumado."
   else:
-    frase_destaque = "Design funcional, excelente acabamento e praticidade garantida para o seu dia a dia."
+    frase_destaque = "Design funcional, excelente acabamento e praticidade garantida."
 
-  # Identifica formato ideal de mídia
   if any(k in t_lower for k in ["caixa", "som", "fone", "smart", "automático", "robo", "aspirador", "kit"]):
     insight_formato = "🎬 FORMATO IDEAL: VÍDEO DINÂMICO (Demonstração prática em funcionamento gera muito mais cliques)."
   else:
@@ -257,23 +273,19 @@ def gerar_textos_hibridos(
   tags_list = cat_data.get("tags_obrigatorias", ["#achadosshopee", "#shopeebrasil", "#dicas"])
   tags = " ".join(tags_list)
 
-  # --- TEXTOS OFFLINE PROFISSIONAIS E ADAPTADOS AO PRODUTO REAL ---
   tik_tit = f"Olha o que achei para facilitar: {nome_curto}"
   tik_leg = f"✨ Olha o nível desse achado! {destaque} Garanta o seu com desconto na sacolinha amarela 👇\n{link}\n\n{tags}"
 
   insta_tit = f"Dica de Ouro: {nome_curto}"
   insta_leg = f"✨ Sabe aquele produto que vale cada centavo?\n\nO {nome_curto} entrega exatamente o que promete. {destaque} Praticidade e qualidade que fazem toda a diferença.\n\n🔗 Corre no link da BIO para garantir o seu!\n\n{tags}"
 
-  # Pinterest SEO Rico (~800 caracteres adaptados ao produto real)
   pin_tit = f"{nome_curto} - Detalhes, Benefícios e Onde Comprar"
-  pin_desc = f"Procurando por {nome_longo}? Descubra todos os diferenciais desta excelente opção da categoria {categoria}. {destaque} Desenvolvido com foco total em qualidade, eficiência e utilidade real para o seu dia a dia. Excelente escolha para quem busca o melhor custo-benefício do mercado sem abrir mão de um desempenho impecável. Confira as avaliações, veja todos os detalhes técnicos e garanta o seu com entrega segura e preço promocional direto na plataforma oficial. Não perca tempo e adquira já o seu pelo link direto: {link}\n\nEste item foi selecionado estrategicamente em nossa curadoria para entregar a melhor experiência de compra. Explore mais novidades e recomendações exclusivas em nossa vitrine oficial.\n\nTermos relacionados e tags: {tags}"
+  pin_desc = f"Procurando por {nome_longo}? Descubra todos os diferenciais desta excelente opção na categoria {categoria}. {destaque} Desenvolvido com foco total em qualidade, eficiência e utilidade real para o seu dia a dia. Excelente escolha para quem busca o melhor custo-benefício do mercado sem abrir mão de um desempenho impecável. Confira as avaliações, veja todos os detalhes técnicos e garanta o seu com entrega segura e preço promocional direto na plataforma oficial. Não perca tempo e adquira já o seu pelo link direto: {link}\n\nEste item foi selecionado estrategicamente em nossa curadoria para entregar a melhor experiência de compra. Explore mais novidades e recomendações exclusivas em nossa vitrine oficial.\n\nTermos relacionados e tags: {tags}"
 
-  # Shopee estrito (<150 caracteres)
   shp_leg = f"Imperdível! {nome_curto}. Confira na vitrine oficial 👇\n{link} {tags}"
   if len(shp_leg) > 145:
     shp_leg = f"Imperdível! Vitrine 👇\n{link} #achados"
 
-  # Prompt de Vídeo / B-Roll Profissional
   prompt_ia = f"Cinematic UGC video showcasing {nome_curto}, clean aesthetic background, realistic natural lighting, macro details, smooth camera movement, vertical format for Reels and TikTok"
 
   estrategia_final = f"Motor Offline Profissional | {insight}"
@@ -462,7 +474,7 @@ elif menu == "📋 Pendentes":
     st.info("Nenhum conteúdo pendente.")
 
 elif menu == "📦 Catálogo":
-  st.markdown("### 📦 Catálogo de Produtos e Criação de Categorias")
+  st.markdown("### 📦 Catálogo de Produtos e Grupos do Pinterest")
   cerebro = carregar_cerebro()
   
   categorias_dict = cerebro.get("categorias_e_regras", {})
@@ -475,30 +487,30 @@ elif menu == "📦 Catálogo":
         placeholder="Dê uma olhada em Kit Shampoo Infantil por R$35...",
     )
     
-    nicho_escolhido = st.selectbox("Categoria / Grupo do Pinterest:", lista_nichos)
+    nicho_escolhido = st.selectbox("Grupo / Pasta do Pinterest:", lista_nichos)
 
     nova_categoria = ""
     if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
-      nova_categoria = st.text_input("Digite o nome exato da nova categoria ou grupo (ex: Jogos, K-Pop, etc.):")
+      nova_categoria = st.text_input("Digite o nome limpo e exato da pasta (ex: Jogos, K-Pop, Beleza e Cuidados):")
 
     enviar = st.form_submit_button("Analisar e Salvar no Catálogo 🚀")
 
     if enviar and texto_zap:
-      # Define a categoria final perfeitamente
       categoria_final = (
           nova_categoria.strip()
           if nova_categoria.strip()
           else nicho_escolhido
       )
 
-      # Salva de verdade a nova categoria criada no arquivo cerebro_v3.json para não perder nunca mais
-      if nova_categoria.strip() and nova_categoria.strip() not in categorias_dict:
-        cerebro.setdefault("categorias_e_regras", {})[
-            nova_categoria.strip()
-        ] = {
-            "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil", f"#{nova_categoria.strip().lower().replace(' ', '')}"],
-        }
-        salvar_cerebro(cerebro)
+      # CORREÇÃO CRUCIAL: Salva e persiste a nova categoria no arquivo cerebro_v3.json instantaneamente
+      if nova_categoria.strip():
+        cat_limpa = nova_categoria.strip()
+        if cat_limpa not in categorias_dict:
+          cerebro.setdefault("categorias_e_regras", {})[cat_limpa] = {
+              "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil", f"#{cat_limpa.lower().replace(' ', '')}"],
+          }
+          salvar_cerebro(cerebro)
+          categoria_final = cat_limpa
 
       nome_puro, nome_curto, link_limpo, frase_destaque, _ = (
           limpar_e_extrair_shopee(texto_zap)
@@ -510,7 +522,7 @@ elif menu == "📦 Catálogo":
           (nome_puro, nome_curto, frase_destaque, categoria_final, link_limpo),
           fetch=False,
       )
-      st.success(f"Sucesso! Produto cadastrado e nova categoria '{categoria_final}' salva no cérebro!")
+      st.success(f"Sucesso! Produto cadastrado e grupo '{categoria_final}' salvo no cérebro com sucesso!")
       st.rerun()
 
   st.markdown("---")
@@ -522,7 +534,7 @@ elif menu == "📦 Catálogo":
       c1, c2 = st.columns([4, 1])
       with c1:
         st.markdown(
-            f"**📦 {row['nome_curto']}** `[{row['nicho']}]`"
+            f"**📦 {row['nome_curto']}** `[Pasta: {row['nicho']}]`"
         )
         st.caption(f"💡 {row['destaques']}")
       with c2:
@@ -538,7 +550,7 @@ elif menu == "🧠 Treinamento":
 
 elif menu == "🧬 Auto-Evolução":
   st.markdown("### 🧬 Painel de Auto-Evolução")
-  st.info("Módulo ativo: Otimização de conversão de links.")
+  st.info("Módulo ativo: Sincronização de tags e grupos.")
 
 elif menu == "📊 Dashboard":
   st.markdown("### 📊 Dashboard Consolidado")
