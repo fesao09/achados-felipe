@@ -6,7 +6,6 @@ Autor: Felipe de Oliveira Gonçalves (@achadosfelipe01)
 
 import json
 import os
-import random
 import re
 import sqlite3
 import pandas as pd
@@ -114,21 +113,11 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "6.0",
-            "objetivo": "Matriz de inteligência",
+            "versao": "7.0",
+            "objetivo": "Matriz de inteligência real e dinâmica.",
         },
         "categorias_e_regras": {
-            "Geral (Coringa / Utilidades)": {
-                "foco_atributos": ["praticidade", "custo-benefício"],
-                "padrao_seo_pinterest": {
-                    "estrutura_titulo": (
-                        "{nome_curto} - Achado Útil para o Dia a Dia"
-                    ),
-                    "gatilhos_descricao": (
-                        "Resolva seus problemas cotidianos com facilidade."
-                        " Conheça o {nome_longo}. {link}"
-                    ),
-                },
+            "Utilidades & Acessórios": {
                 "tags_obrigatorias": ["#achadosshopee", "#utilidades"],
             }
         },
@@ -205,19 +194,7 @@ def run_query(query, params=(), fetch=True):
   conn.close()
 
 
-IA_DISPONIVEL = False
-client = None
-try:
-  from google import genai
-
-  api_key = st.secrets["GEMINI_API_KEY"]
-  client = genai.Client(api_key=api_key)
-  IA_DISPONIVEL = True
-except Exception:
-  pass
-
-
-# --- EXTRATOR DE ATRIBUTOS E INSIGHT DE FORMATO ---
+# --- EXTRATOR DE ATRIBUTOS REAL E ESPECÍFICO ---
 def limpar_e_extrair_shopee(texto_bruto):
   link_puro = texto_bruto
   for p in texto_bruto.split():
@@ -236,50 +213,28 @@ def limpar_e_extrair_shopee(texto_bruto):
       .strip()
   )
 
-  atributos = []
   t_lower = nome_puro.lower()
 
-  bat_match = re.search(r"(\d+)\s*h", t_lower)
-  if bat_match:
-    atributos.append(f"bateria de {bat_match.group(1)}h")
-  elif "bateria" in t_lower:
-    atributos.append("bateria de longa duração")
-
-  if "ip" in t_lower or "água" in t_lower:
-    atributos.append("proteção total contra água")
-  if "bluetooth" in t_lower or "sem fio" in t_lower:
-    atributos.append("conexão sem fio de alta estabilidade")
-  if "automático" in t_lower or "automatico" in t_lower:
-    atributos.append("sistema de acionamento automático")
-  if "vento" in t_lower or "reforçado" in t_lower:
-    atributos.append("estrutura reforçada contra ventos fortes")
-
-  frase_destaque = "Design moderno, alta durabilidade e acabamento premium."
-  if atributos:
-    frase_destaque = (
-        f"Ele conta com {' e '.join(atributos[:2])}, garantindo máxima"
-        " eficiência no uso diário!"
-    )
-
-  if any(
-      k in t_lower
-      for k in [
-          "caixa",
-          "som",
-          "fone",
-          "smart",
-          "automático",
-          "robo",
-          "aspirador",
-          "kit",
-      ]
-  ):
-    insight_formato = "🎬 FORMATO IDEAL: VÍDEO DINÂMICO (Demonstração prática em funcionamento gera 3x mais cliques)."
+  # Detecção cirúrgica baseada no que o produto realmente é (sem respostas genéricas)
+  if any(k in t_lower for k in ["shampoo", "condicionador", "cabelo", "infantil", "infante", "infancia", "banho"]):
+    frase_destaque = "Fórmula dermatologicamente testada, cheirinho duradouro e cuidado delicado para os fios dos pequenos."
+  elif any(k in t_lower for k in ["creatina", "whey", "suplemento", "proteina", "treino"]):
+    frase_destaque = "Alta pureza e concentração ideal para turbinar seus resultados diários."
+  elif any(k in t_lower for k in ["creamy", "cerave", "principia", "sérum", "protetor solar", "pele"]):
+    frase_destaque = "Ativos de alta performance para uma rotina de skincare impecável e resultados visíveis."
+  elif any(k in t_lower for k in ["omo", "surf", "coala", "limpeza", "faxina", "desinfetante"]):
+    frase_destaque = "Alto rendimento e poder de limpeza superior para deixar tudo limpo e perfumado."
   else:
-    insight_formato = "📸 FORMATO IDEAL: CARROSSEL ESTÁTICO OU FOTOS (Detalhes estéticos e comparativos funcionam melhor)."
+    frase_destaque = "Design funcional, excelente acabamento e praticidade garantida para o seu dia a dia."
+
+  # Identifica formato ideal de mídia
+  if any(k in t_lower for k in ["caixa", "som", "fone", "smart", "automático", "robo", "aspirador", "kit"]):
+    insight_formato = "🎬 FORMATO IDEAL: VÍDEO DINÂMICO (Demonstração prática em funcionamento gera muito mais cliques)."
+  else:
+    insight_formato = "📸 FORMATO IDEAL: CARROSSEL ESTÁTICO OU FOTOS (Detalhes visuais e close nos benefícios funcionam melhor)."
 
   palavras = nome_puro.split()
-  nome_curto = " ".join(palavras[:5]).rstrip(",-:")
+  nome_curto = " ".join(palavras[:6]).rstrip(",-:")
   if not nome_curto:
     nome_curto = "Achado Imperdível"
     nome_puro = "Produto Shopee"
@@ -294,136 +249,32 @@ def gerar_textos_hibridos(
     categoria,
     destaque,
     insight,
-    usar_ia_forcado=False,
 ):
   cerebro = carregar_cerebro()
   categorias_dict = cerebro.get("categorias_e_regras", {})
-  cat_data = categorias_dict.get(
-      categoria,
-      categorias_dict.get(
-          "Geral (Coringa / Utilidades)", list(categorias_dict.values())[0]
-      ),
-  )
-
-  tags_list = cat_data.get(
-      "tags_obrigatorias", ["#achadosshopee", "#shopeebrasil"]
-  )
+  cat_data = categorias_dict.get(categoria, {})
+  
+  tags_list = cat_data.get("tags_obrigatorias", ["#achadosshopee", "#shopeebrasil", "#dicas"])
   tags = " ".join(tags_list)
 
-  if usar_ia_forcado and IA_DISPONIVEL:
-    try:
-      prompt = f"""Gere textos altamente persuasivos para afiliado baseados nas especificações reais, com português natural, fluído e focado em conversão.
-Produto Completo: '{nome_longo}'
-Link: {link}
-Categoria: {categoria}
+  # --- TEXTOS OFFLINE PROFISSIONAIS E ADAPTADOS AO PRODUTO REAL ---
+  tik_tit = f"Olha o que achei para facilitar: {nome_curto}"
+  tik_leg = f"✨ Olha o nível desse achado! {destaque} Garanta o seu com desconto na sacolinha amarela 👇\n{link}\n\n{tags}"
 
-Responda EXATAMENTE neste formato de chaves:
-TIK_TITULO: Gancho curto e magnético para TikTok
-TIK_LEGENDA: Legenda para TikTok com sacolinha e tags ({tags})
-INSTA_TITULO: Título chamativo para Capa do Reels / Carrossel
-INSTA_LEGENDA: Legenda rica e persuasiva para Instagram com link na bio e tags ({tags})
-PIN_TITULO: Título rico em SEO para Pinterest (Até 100 caracteres)
-PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest usando todas as especificações do produto, com chamada para ação, links e tags (Perto de 800 caracteres) ({tags})
-SHP_LEGENDA: Legenda curta para Shopee Vídeo com link (Menos de 150 caracteres)
-PROMPT_IA: Prompt detalhado em inglês para gerar imagem/vídeo no Midjourney ou IA de vídeo"""
+  insta_tit = f"Dica de Ouro: {nome_curto}"
+  insta_leg = f"✨ Sabe aquele produto que vale cada centavo?\n\nO {nome_curto} entrega exatamente o que promete. {destaque} Praticidade e qualidade que fazem toda a diferença.\n\n🔗 Corre no link da BIO para garantir o seu!\n\n{tags}"
 
-      res = client.models.generate_content(
-          model="gemini-2.5-flash", contents=prompt
-      ).text
+  # Pinterest SEO Rico (~800 caracteres adaptados ao produto real)
+  pin_tit = f"{nome_curto} - Detalhes, Benefícios e Onde Comprar"
+  pin_desc = f"Procurando por {nome_longo}? Descubra todos os diferenciais desta excelente opção da categoria {categoria}. {destaque} Desenvolvido com foco total em qualidade, eficiência e utilidade real para o seu dia a dia. Excelente escolha para quem busca o melhor custo-benefício do mercado sem abrir mão de um desempenho impecável. Confira as avaliações, veja todos os detalhes técnicos e garanta o seu com entrega segura e preço promocional direto na plataforma oficial. Não perca tempo e adquira já o seu pelo link direto: {link}\n\nEste item foi selecionado estrategicamente em nossa curadoria para entregar a melhor experiência de compra. Explore mais novidades e recomendações exclusivas em nossa vitrine oficial.\n\nTermos relacionados e tags: {tags}"
 
-      t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia = (
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-      )
-      for l in res.split("\n"):
-        if ":" in l:
-          ch, val = l.split(":", 1)
-          ch, val = ch.strip().upper(), val.strip()
-          if "TIK_TITULO" in ch:
-            t_tit = val
-          elif "TIK_LEGENDA" in ch:
-            t_leg = val
-          elif "INSTA_TITULO" in ch:
-            i_tit = val
-          elif "INSTA_LEGENDA" in ch:
-            i_leg = val
-          elif "PIN_TITULO" in ch:
-            p_tit = val
-          elif "PIN_DESCRICAO" in ch:
-            p_desc = val
-          elif "SHP_LEGENDA" in ch:
-            s_leg = val
-          elif "PROMPT_IA" in ch:
-            p_ia = val
-
-      if t_tit and p_desc:
-        return (
-            "Gerado via IA Híbrida 🤖",
-            t_tit,
-            t_leg,
-            i_tit,
-            i_leg,
-            p_tit,
-            p_desc,
-            s_leg,
-            p_ia,
-        )
-    except Exception as e:
-      st.toast(f"Aviso de IA: {e}")
-
-  # --- MODO OFFLINE PROFISSIONAL E ROBUSTO ---
-  tik_tit = f"Cansado de passar perrengue? Olha o que esse {nome_curto} faz:"
-  tik_leg = f"😱 Salvação pura para o dia a dia! {destaque} Garanta o seu com desconto na sacolinha amarela 👇\n{link}\n\n{tags}"
-
-  insta_tit = f"O Indispensável: {nome_curto}"
-  insta_leg = f"🛡️ Sabe aquele problema corriqueiro que irrita todo mundo?\n\nO {nome_curto} resolve isso em segundos. {destaque} É o tipo de investimento prático que faz a gente se perguntar por que não comprou antes.\n\n🔗 Corre no link da BIO para garantir o seu com segurança!\n\n{tags}"
-
-  # Padrão SEO Pinterest profissional (Gera texto longo e rico perto de 800 caracteres)
-  seo_rule = cat_data.get("padrao_seo_pinterest", {})
-  pin_tit = (
-      seo_rule.get(
-          "estrutura_titulo",
-          "{nome_curto} - Review Completo e Onde Comprar",
-      )
-      .replace("{nome_curto}", nome_curto)
-      .replace("{nome_longo}", nome_longo)
-  )
-
-  base_desc_modelo = seo_rule.get(
-      "gatilhos_descricao",
-      "Procurando por {nome_longo}? Conheça todas as vantagens e diferenciais"
-      " deste excelente produto da categoria {categoria}. {destaque} Desenvolvido"
-      " para proporcionar máxima eficiência, durabilidade e praticidade no seu"
-      " dia a dia. Excelente opção para quem preza por qualidade superior e"
-      " preço justo. Confira avaliações, veja todos os detalhes técnicos e"
-      " garanta o seu com entrega segura e desconto exclusivo direto na"
-      " plataforma oficial. Não perca tempo e adquira já o seu pelo link"
-      " direto: {link}",
-  )
-
-  pin_desc = (
-      base_desc_modelo.replace("{nome_longo}", nome_longo)
-      .replace("{nome_curto}", nome_curto)
-      .replace("{categoria}", categoria)
-      .replace("{destaque}", destaque)
-      .replace("{link}", link)
-  )
-  # Expande para garantir robustez de SEO no Pinterest (chegando próximo a 700-800 caracteres)
-  pin_desc += f"\n\nEste item foi selecionado estrategicamente em nossa curadoria para entregar a melhor experiência de compra e utilidade real. Explore mais dicas, novidades e recomendações exclusivas em nossa vitrine oficial.\n\nTermos relacionados e tags: {tags}"
-
-  # Shopee estrito a menos de 150 caracteres
-  shp_leg = f"Achado imperdível! {nome_curto}. Confira na vitrine oficial 👇\n{link} {tags}"
+  # Shopee estrito (<150 caracteres)
+  shp_leg = f"Imperdível! {nome_curto}. Confira na vitrine oficial 👇\n{link} {tags}"
   if len(shp_leg) > 145:
-    shp_leg = f"Imperdível! {nome_curto} 👇\n{link} #achados"
+    shp_leg = f"Imperdível! Vitrine 👇\n{link} #achados"
 
-  # Prompt de Vídeo / B-Roll profissional para IA
-  prompt_ia = f"Cinematic UGC video showcasing {nome_curto} in a modern clean environment, realistic lighting, macro details, smooth camera movement, 4k resolution, vertical format for Reels and TikTok"
+  # Prompt de Vídeo / B-Roll Profissional
+  prompt_ia = f"Cinematic UGC video showcasing {nome_curto}, clean aesthetic background, realistic natural lighting, macro details, smooth camera movement, vertical format for Reels and TikTok"
 
   estrategia_final = f"Motor Offline Profissional | {insight}"
 
@@ -458,17 +309,7 @@ if menu == "🎬 Gerar":
       prod_escolhido = st.selectbox(
           "Selecione o Produto", df_produtos["nome"].tolist()
       )
-
-      modo_geracao = st.radio(
-          "Escolha o Motor de Geração:",
-          [
-              "⚡ Motor Offline Profissional (Garantido e Completo)",
-              "🤖 Tentar Forçar com Inteligência Artificial (Gemini)",
-          ],
-          index=0,
-      )
-
-      btn_gerar = st.form_submit_button("Gerar Pacote de Roteiros 🚀")
+      btn_gerar = st.form_submit_button("Gerar Pacote de Roteiros Profissionais 🚀")
 
       if btn_gerar:
         prod_row = df_produtos.loc[
@@ -490,9 +331,8 @@ if menu == "🎬 Gerar":
         )
 
         _, _, _, _, insight_gerado = limpar_e_extrair_shopee(n_longo)
-        usar_ia = True if "Inteligência Artificial" in modo_geracao else False
 
-        with st.spinner("Processando roteiros e otimizando o SEO..."):
+        with st.spinner("Processando roteiros customizados para o produto..."):
           (
               estrategia,
               tik_tit,
@@ -510,7 +350,6 @@ if menu == "🎬 Gerar":
               nicho,
               destaque,
               insight_gerado,
-              usar_ia_forcado=usar_ia,
           )
 
         run_query(
@@ -532,7 +371,7 @@ if menu == "🎬 Gerar":
             ),
             fetch=False,
         )
-        st.success("🎉 Sucesso! Roteiro profissional gerado.")
+        st.success("🎉 Sucesso! Roteiro gerado perfeitamente.")
         st.rerun()
   else:
     st.info("Catálogo vazio ou todos os produtos já gerados!")
@@ -556,7 +395,6 @@ elif menu == "📋 Pendentes":
       nome_p = row["produto"] if pd.notna(row["produto"]) else "Produto"
 
       with st.expander(f"[{status_ico}] {nome_p}"):
-        # Exibe o Insight de Formato (Vídeo Dinâmico vs Carrossel) no topo
         st.info(f"💡 {row['estrategia_ia']}")
 
         st.text_input(
@@ -624,45 +462,41 @@ elif menu == "📋 Pendentes":
     st.info("Nenhum conteúdo pendente.")
 
 elif menu == "📦 Catálogo":
-  st.markdown("### 📦 Catálogo de Produtos")
+  st.markdown("### 📦 Catálogo de Produtos e Criação de Categorias")
   cerebro = carregar_cerebro()
+  
   categorias_dict = cerebro.get("categorias_e_regras", {})
   lista_nichos = list(categorias_dict.keys())
-  lista_nichos.append("➕ Criar Nova Categoria...")
+  lista_nichos.append("➕ Criar Nova Categoria / Grupo...")
 
   with st.form("form_cat_manual"):
     texto_zap = st.text_area(
         "Cole a mensagem do WhatsApp ou Link Shopee:",
-        placeholder="Dê uma olhada em...",
+        placeholder="Dê uma olhada em Kit Shampoo Infantil por R$35...",
     )
-    nicho_escolhido = st.selectbox("Categoria Principal:", lista_nichos)
+    
+    nicho_escolhido = st.selectbox("Categoria / Grupo do Pinterest:", lista_nichos)
 
     nova_categoria = ""
-    if nicho_escolhido == "➕ Criar Nova Categoria...":
-      nova_categoria = st.text_input("Digite o nome da nova categoria:")
+    if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
+      nova_categoria = st.text_input("Digite o nome exato da nova categoria ou grupo (ex: Jogos, K-Pop, etc.):")
 
     enviar = st.form_submit_button("Analisar e Salvar no Catálogo 🚀")
 
     if enviar and texto_zap:
+      # Define a categoria final perfeitamente
       categoria_final = (
           nova_categoria.strip()
           if nova_categoria.strip()
           else nicho_escolhido
       )
 
+      # Salva de verdade a nova categoria criada no arquivo cerebro_v3.json para não perder nunca mais
       if nova_categoria.strip() and nova_categoria.strip() not in categorias_dict:
         cerebro.setdefault("categorias_e_regras", {})[
             nova_categoria.strip()
         ] = {
-            "foco_atributos": ["utilidade geral", "custo-benefício"],
-            "padrao_seo_pinterest": {
-                "estrutura_titulo": "{nome_curto} - Achado Imperdível",
-                "gatilhos_descricao": (
-                    "Encontre os melhores produtos com excelente preço e"
-                    " utilidade garantida para o dia a dia. {link}"
-                ),
-            },
-            "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil"],
+            "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil", f"#{nova_categoria.strip().lower().replace(' ', '')}"],
         }
         salvar_cerebro(cerebro)
 
@@ -676,7 +510,7 @@ elif menu == "📦 Catálogo":
           (nome_puro, nome_curto, frase_destaque, categoria_final, link_limpo),
           fetch=False,
       )
-      st.success(f"Cadastrado com sucesso na categoria: {categoria_final}!")
+      st.success(f"Sucesso! Produto cadastrado e nova categoria '{categoria_final}' salva no cérebro!")
       st.rerun()
 
   st.markdown("---")
@@ -704,7 +538,7 @@ elif menu == "🧠 Treinamento":
 
 elif menu == "🧬 Auto-Evolução":
   st.markdown("### 🧬 Painel de Auto-Evolução")
-  st.info("Módulo ativo: Monitoramento de conversão e SEO.")
+  st.info("Módulo ativo: Otimização de conversão de links.")
 
 elif menu == "📊 Dashboard":
   st.markdown("### 📊 Dashboard Consolidado")
