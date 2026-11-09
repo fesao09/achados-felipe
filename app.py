@@ -113,7 +113,7 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "16.0",
+            "versao": "17.0",
             "objetivo": "Matriz de inteligência de conteúdo",
         },
         "categorias_e_regras": {
@@ -449,14 +449,14 @@ if menu == "🎬 Gerar":
     st.info("Catálogo vazio ou todos os produtos já gerados!")
 
 elif menu == "📋 Pendentes":
-  st.markdown("### 📋 Central de Pendentes (Com Cópia Nativa em Cada Bloco)")
+  st.markdown("### 📋 Central de Pendentes (Com Blocos de Cópia Rápida 📋)")
 
   df_kanban = run_query(
       "SELECT c.id, p.nome_curto as produto, c.estrategia_ia, c.status,"
       " c.tik_titulo_video, c.tik_legenda, c.insta_titulo_video,"
       " c.insta_legenda, c.pin_titulo, c.pin_descricao, c.shp_legenda,"
       " c.prompt_ia FROM conteudos c LEFT JOIN produtos p ON c.produto_id ="
-      " p.id WHERE p.nome IS NOT NULL ORDER BY c.id DESC"
+      " p.id WHERE c.produto_id IS NOT NULL ORDER BY c.id DESC"
   )
 
   if not df_kanban.empty:
@@ -469,18 +469,30 @@ elif menu == "📋 Pendentes":
       with st.expander(f"[{status_ico}] {nome_p} (ID: {row['id']})"):
         st.info(f"💡 {row['estrategia_ia']}")
 
-        # CAMPOS COM O BOTÃO DE CÓPIA NATIVO DO STREAMLIT NO CANTO SUPERIOR DIREITO
-        st.text_input("TikTok Gancho", value=row["tik_titulo_video"] or "", key=f"tt_{row['id']}")
-        st.text_area("TikTok Legenda", value=row["tik_legenda"] or "", height=80, key=f"tl_{row['id']}")
-        
-        st.text_input("Instagram Capa / Título", value=row["insta_titulo_video"] or "", key=f"it_{row['id']}")
-        st.text_area("Instagram Legenda", value=row["insta_legenda"] or "", height=130, key=f"il_{row['id']}")
-        
-        st.text_input("Pinterest Título", value=row["pin_titulo"] or "", key=f"pt_{row['id']}")
-        st.text_area("Pinterest Descrição SEO (Rica, ~800 caracteres)", value=row["pin_descricao"] or "", height=160, key=f"pd_{row['id']}")
-        
-        st.text_area("Shopee Legenda (<150 caracteres)", value=row["shp_legenda"] or "", height=60, key=f"sl_{row['id']}")
-        st.text_area("🎥 Prompt de Vídeo / B-Roll (Para IA)", value=row["prompt_ia"] or "", height=70, key=f"pi_{row['id']}")
+        # USANDO ST.CODE PARA GARANTIR O BOTÃO DE CÓPIA NATIVO QUE FUNCIONA NO CELULAR E PC
+        st.markdown("**TikTok Gancho**")
+        st.code(row["tik_titulo_video"] or "", language="text")
+
+        st.markdown("**TikTok Legenda**")
+        st.code(row["tik_legenda"] or "", language="text")
+
+        st.markdown("**Instagram Capa / Título**")
+        st.code(row["insta_titulo_video"] or "", language="text")
+
+        st.markdown("**Instagram Legenda**")
+        st.code(row["insta_legenda"] or "", language="text")
+
+        st.markdown("**Pinterest Título**")
+        st.code(row["pin_titulo"] or "", language="text")
+
+        st.markdown("**Pinterest Descrição SEO (Rica, ~800 caracteres)**")
+        st.code(row["pin_descricao"] or "", language="text")
+
+        st.markdown("**Shopee Legenda (<150 caracteres)**")
+        st.code(row["shp_legenda"] or "", language="text")
+
+        st.markdown("**🎥 Prompt de Vídeo / B-Roll (Para IA)**")
+        st.code(row["prompt_ia"] or "", language="text")
 
         st.markdown("---")
         c1, c2 = st.columns(2)
@@ -509,7 +521,6 @@ elif menu == "📦 Catálogo":
   lista_nichos = list(categorias_dict.keys())
   lista_nichos.append("➕ Criar Nova Categoria / Grupo...")
 
-  # CADASTRO LIMPO E DIRETO (SEM FORMULÁRIO DUPLICADO)
   st.markdown("#### Cadastrar Novo Produto")
   texto_zap = st.text_area(
       "Cole a mensagem do WhatsApp ou Link Shopee:",
