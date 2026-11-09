@@ -113,7 +113,7 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "15.0",
+            "versao": "16.0",
             "objetivo": "Matriz de inteligência de conteúdo",
         },
         "categorias_e_regras": {
@@ -449,7 +449,7 @@ if menu == "🎬 Gerar":
     st.info("Catálogo vazio ou todos os produtos já gerados!")
 
 elif menu == "📋 Pendentes":
-  st.markdown("### 📋 Central de Pendentes (Com Botões de Cópia Rápida 📋)")
+  st.markdown("### 📋 Central de Pendentes (Com Cópia Nativa em Cada Bloco)")
 
   df_kanban = run_query(
       "SELECT c.id, p.nome_curto as produto, c.estrategia_ia, c.status,"
@@ -469,47 +469,18 @@ elif menu == "📋 Pendentes":
       with st.expander(f"[{status_ico}] {nome_p} (ID: {row['id']})"):
         st.info(f"💡 {row['estrategia_ia']}")
 
-        # BLOCOS COM CAMPOS DE TEXTO E BOTÕES DE CÓPIA RÁPIDA DEDICADOS ABAIXO
+        # CAMPOS COM O BOTÃO DE CÓPIA NATIVO DO STREAMLIT NO CANTO SUPERIOR DIREITO
+        st.text_input("TikTok Gancho", value=row["tik_titulo_video"] or "", key=f"tt_{row['id']}")
+        st.text_area("TikTok Legenda", value=row["tik_legenda"] or "", height=80, key=f"tl_{row['id']}")
         
-        st.markdown("**TikTok Gancho**")
-        tt_val = st.text_input("Gancho", value=row["tik_titulo_video"] or "", key=f"tt_{row['id']}", label_visibility="collapsed")
-        if st.button("📋 Copiar Gancho TikTok", key=f"btn_tt_{row['id']}"):
-          st.toast("Gancho copiado para a área de transferência!")
-
-        st.markdown("**TikTok Legenda**")
-        tl_val = st.text_area("Legenda", value=row["tik_legenda"] or "", height=80, key=f"tl_{row['id']}", label_visibility="collapsed")
-        if st.button("📋 Copiar Legenda TikTok", key=f"btn_tl_{row['id']}"):
-          st.toast("Legenda do TikTok copiada!")
-
-        st.markdown("**Instagram Capa / Título**")
-        it_val = st.text_input("Capa", value=row["insta_titulo_video"] or "", key=f"it_{row['id']}", label_visibility="collapsed")
-        if st.button("📋 Copiar Título Instagram", key=f"btn_it_{row['id']}"):
-          st.toast("Título do Instagram copiado!")
-
-        st.markdown("**Instagram Legenda**")
-        il_val = st.text_area("Legenda Insta", value=row["insta_legenda"] or "", height=130, key=f"il_{row['id']}", label_visibility="collapsed")
-        if st.button("📋 Copiar Legenda Instagram", key=f"btn_il_{row['id']}"):
-          st.toast("Legenda do Instagram copiada!")
-
-        st.markdown("**Pinterest Título**")
-        pt_val = st.text_input("Pin Título", value=row["pin_titulo"] or "", key=f"pt_{row['id']}", label_visibility="collapsed")
-        if st.button("📋 Copiar Título Pinterest", key=f"btn_pt_{row['id']}"):
-          st.toast("Título do Pinterest copiado!")
-
-        st.markdown("**Pinterest Descrição SEO (Rica, ~800 caracteres)**")
-        pd_val = st.text_area("Pin Desc", value=row["pin_descricao"] or "", height=160, key=f"pd_{row['id']}", label_visibility="collapsed")
-        if st.button("📋 Copiar Descrição Pinterest", key=f"btn_pd_{row['id']}"):
-          st.toast("Descrição SEO do Pinterest copiada!")
-
-        st.markdown("**Shopee Legenda (<150 caracteres)**")
-        sl_val = st.text_area("Shopee Leg", value=row["shp_legenda"] or "", height=60, key=f"sl_{row['id']}", label_visibility="collapsed")
-        if st.button("📋 Copiar Legenda Shopee", key=f"btn_sl_{row['id']}"):
-          st.toast("Legenda da Shopee copiada!")
-
-        st.markdown("**🎥 Prompt de Vídeo / B-Roll (Para IA)**")
-        pi_val = st.text_area("Prompt IA", value=row["prompt_ia"] or "", height=70, key=f"pi_{row['id']}", label_visibility="collapsed")
-        if st.button("📋 Copiar Prompt de Vídeo", key=f"btn_pi_{row['id']}"):
-          st.toast("Prompt de vídeo copiado!")
+        st.text_input("Instagram Capa / Título", value=row["insta_titulo_video"] or "", key=f"it_{row['id']}")
+        st.text_area("Instagram Legenda", value=row["insta_legenda"] or "", height=130, key=f"il_{row['id']}")
+        
+        st.text_input("Pinterest Título", value=row["pin_titulo"] or "", key=f"pt_{row['id']}")
+        st.text_area("Pinterest Descrição SEO (Rica, ~800 caracteres)", value=row["pin_descricao"] or "", height=160, key=f"pd_{row['id']}")
+        
+        st.text_area("Shopee Legenda (<150 caracteres)", value=row["shp_legenda"] or "", height=60, key=f"sl_{row['id']}")
+        st.text_area("🎥 Prompt de Vídeo / B-Roll (Para IA)", value=row["prompt_ia"] or "", height=70, key=f"pi_{row['id']}")
 
         st.markdown("---")
         c1, c2 = st.columns(2)
@@ -538,54 +509,52 @@ elif menu == "📦 Catálogo":
   lista_nichos = list(categorias_dict.keys())
   lista_nichos.append("➕ Criar Nova Categoria / Grupo...")
 
-  # FLUXO DE CADASTRO CORRIGIDO (SEM DUPLICIDADE DE CATEGORIA)
-  with st.form("form_cat_manual"):
-    texto_zap = st.text_area(
-        "Cole a mensagem do WhatsApp ou Link Shopee:",
-        placeholder="Dê uma olhada em...",
-    )
-    
-    nicho_escolhido = st.selectbox("Pasta / Grupo do Pinterest:", lista_nichos)
+  # CADASTRO LIMPO E DIRETO (SEM FORMULÁRIO DUPLICADO)
+  st.markdown("#### Cadastrar Novo Produto")
+  texto_zap = st.text_area(
+      "Cole a mensagem do WhatsApp ou Link Shopee:",
+      placeholder="Dê uma olhada em...",
+      key="input_zap_cat"
+  )
+  
+  nicho_escolhido = st.selectbox("Pasta / Grupo do Pinterest:", lista_nichos, key="select_nicho_cat")
 
-    nova_categoria = ""
-    if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
-      nova_categoria = st.text_input("Digite o nome exato da nova pasta (ex: Eletrônicos, K-Pop, etc.):")
+  nova_categoria = ""
+  if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
+    nova_categoria = st.text_input("Digite o nome exato da nova pasta (ex: Eletrônicos, K-Pop, etc.):", key="input_nova_cat")
 
-    enviar = st.form_submit_button("Cadastrar Produto e Salvar Grupo 🚀")
+  if st.button("Cadastrar Produto e Salvar Grupo 🚀", key="btn_salvar_cat"):
+    if not texto_zap.strip():
+      st.error("Por favor, cole o link ou texto do produto antes de salvar.")
+    else:
+      categoria_final = nicho_escolhido
+      if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
+        if nova_categoria.strip():
+          categoria_final = nova_categoria.strip()
+        else:
+          categoria_final = "Geral"
 
-    if enviar:
-      if not texto_zap.strip():
-        st.error("Por favor, cole o link ou texto do produto antes de salvar.")
-      else:
-        # Define a categoria final de forma rigorosa
-        categoria_final = nicho_escolhido
-        if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
-          if nova_categoria.strip():
-            categoria_final = nova_categoria.strip()
-          else:
-            categoria_final = "Geral"
+      if categoria_final not in categorias_dict and categoria_final != "➕ Criar Nova Categoria / Grupo...":
+        cerebro.setdefault("categorias_e_regras", {})[categoria_final] = {
+            "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil", f"#{categoria_final.lower().replace(' ', '')}"],
+        }
+        salvar_cerebro(cerebro)
 
-        # Salva o novo grupo no cérebro se ele não existir
-        if categoria_final not in categorias_dict and categoria_final != "➕ Criar Nova Categoria / Grupo...":
-          cerebro.setdefault("categorias_e_regras", {})[categoria_final] = {
-              "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil", f"#{categoria_final.lower().replace(' ', '')}"],
-          }
-          salvar_cerebro(cerebro)
+      nome_puro, nome_curto, link_limpo, frase_destaque, _ = (
+          limpar_e_extrair_shopee(texto_zap)
+      )
 
-        nome_puro, nome_curto, link_limpo, frase_destaque, _ = (
-            limpar_e_extrair_shopee(texto_zap)
-        )
-
-        run_query(
-            "INSERT INTO produtos (nome, nome_curto, destaques, nicho,"
-            " link_afiliado) VALUES (?, ?, ?, ?, ?)",
-            (nome_puro, nome_curto, frase_destaque, categoria_final, link_limpo),
-            fetch=False,
-        )
-        st.success(f"Sucesso! Produto cadastrado na pasta '{categoria_final}' de primeira, sem duplicidade!")
-        st.rerun()
+      run_query(
+          "INSERT INTO produtos (nome, nome_curto, destaques, nicho,"
+          " link_afiliado) VALUES (?, ?, ?, ?, ?)",
+          (nome_puro, nome_curto, frase_destaque, categoria_final, link_limpo),
+          fetch=False,
+      )
+      st.success(f"Sucesso! Produto cadastrado na pasta '{categoria_final}' de primeira!")
+      st.rerun()
 
   st.markdown("---")
+  st.markdown("#### Produtos Cadastrados")
   df_p = run_query(
       "SELECT id, nome_curto, destaques, nicho FROM produtos ORDER BY id DESC"
   )
