@@ -84,7 +84,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<p class="app-subtitle">Sua Máquina de Conteúdo e Automação Offline</p>',
+    '<p class="app-subtitle">Sua Máquina de Conteúdo e Automação Híbrida</p>',
     unsafe_allow_html=True,
 )
 st.markdown("</div>", unsafe_allow_html=True)
@@ -113,7 +113,7 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "10.0",
+            "versao": "11.0",
             "objetivo": "Matriz de inteligência de conteúdo",
         },
         "categorias_e_regras": {
@@ -200,7 +200,21 @@ def run_query(query, params=(), fetch=True):
   conn.close()
 
 
-# --- EXTRATOR DE ATRIBUTOS ESPECÍFICO E REAL ---
+# --- CONFIGURAÇÃO DA IA (GEMINI) ---
+IA_DISPONIVEL = False
+client = None
+try:
+  from google import genai
+
+  api_key = st.secrets.get("GEMINI_API_KEY", "")
+  if api_key:
+    client = genai.Client(api_key=api_key)
+    IA_DISPONIVEL = True
+except Exception:
+  pass
+
+
+# --- EXTRATOR DE ATRIBUTOS E HÍBRIDO ---
 def limpar_e_extrair_shopee(texto_bruto):
   link_puro = texto_bruto
   for p in texto_bruto.split():
@@ -221,7 +235,6 @@ def limpar_e_extrair_shopee(texto_bruto):
 
   t_lower = nome_puro.lower()
 
-  # Detecção focada para não inventar bobagem
   if any(k in t_lower for k in ["shampoo", "condicionador", "cabelo", "infantil", "infante", "banho"]):
     frase_destaque = "Fórmula dermatologicamente testada, cheirinho duradouro e cuidado delicado para o dia a dia."
   elif any(k in t_lower for k in ["creatina", "whey", "suplemento", "proteina", "treino"]):
@@ -254,6 +267,7 @@ def gerar_textos_hibridos(
     categoria,
     destaque,
     insight,
+    usar_ia_forcado=False,
 ):
   cerebro = carregar_cerebro()
   categorias_dict = cerebro.get("categorias_e_regras", {})
@@ -262,36 +276,66 @@ def gerar_textos_hibridos(
   tags_list = cat_data.get("tags_obrigatorias", ["#achadosshopee", "#shopeebrasil", "#dicas"])
   tags = " ".join(tags_list)
 
+  if usar_ia_forcado and IA_DISPONIVEL:
+    try:
+      prompt = f"""Gere textos altamente persuasivos para afiliado baseados nas especificações reais, com português natural, fluído e focado em conversão.
+Produto Completo: '{nome_longo}'
+Link: {link}
+Categoria: {categoria}
+
+Responda EXATAMENTE neste formato de chaves:
+TIK_TITULO: Gancho curto e magnético para TikTok
+TIK_LEGENDA: Legenda para TikTok com sacolinha e tags ({tags})
+INSTA_TITULO: Título chamativo para Capa do Reels / Carrossel
+INSTA_LEGENDA: Legenda rica e persuasiva para Instagram com link na bio e tags ({tags})
+PIN_TITULO: Título rico em SEO para Pinterest (Até 100 caracteres)
+PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest usando todas as especificações do produto, com chamada para ação, links e tags (Perto de 800 caracteres) ({tags})
+SHP_LEGENDA: Legenda curta e magnética para Shopee Vídeo com link (Menos de 150 caracteres)
+PROMPT_IA: Prompt detalhado em inglês para gerar imagem/vídeo no Midjourney ou IA de vídeo"""
+
+      res = client.models.generate_content(
+          model="gemini-2.5-flash", contents=prompt
+      ).text
+
+      t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia = "", "", "", "", "", "", "", ""
+      for l in res.split("\n"):
+        if ":" in l:
+          ch, val = l.split(":", 1)
+          ch, val = ch.strip().upper(), val.strip()
+          if "TIK_TITULO" in ch: t_tit = val
+          elif "TIK_LEGENDA" in ch: t_leg = val
+          elif "INSTA_TITULO" in ch: i_tit = val
+          elif "INSTA_LEGENDA" in ch: i_leg = val
+          elif "PIN_TITULO" in ch: p_tit = val
+          elif "PIN_DESCRICAO" in ch: p_desc = val
+          elif "SHP_LEGENDA" in ch: s_leg = val
+          elif "PROMPT_IA" in ch: p_ia = val
+
+      if t_tit and p_desc:
+        return "Gerado via Inteligência Artificial 🤖", t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia
+    except Exception as e:
+      st.toast(f"Aviso de IA: {e}, usando motor offline robusto.")
+
+  # --- MODO OFFLINE PROFISSIONAL ---
   tik_tit = f"Olha o que achei para facilitar: {nome_curto}"
   tik_leg = f"✨ Olha o nível desse achado! {destaque} Garanta o seu com desconto na sacolinha amarela 👇\n{link}\n\n{tags}"
 
   insta_tit = f"Dica de Ouro: {nome_curto}"
   insta_leg = f"✨ Sabe aquele produto que vale cada centavo?\n\nO {nome_curto} entrega exatamente o que promete. {destaque} Praticidade e qualidade que fazem toda a diferença.\n\n🔗 Corre no link da BIO para garantir o seu!\n\n{tags}"
 
-  # Pinterest SEO Rico (~800 caracteres estruturados)
   pin_tit = f"{nome_curto} - Detalhes, Benefícios e Onde Comprar"
   pin_desc = f"Procurando por {nome_longo}? Descubra todos os diferenciais desta excelente opção na categoria {categoria}. {destaque} Desenvolvido com foco total em qualidade, eficiência e utilidade real para o seu dia a dia. Excelente escolha para quem busca o melhor custo-benefício do mercado sem abrir mão de um desempenho impecável. Confira as avaliações, veja todos os detalhes técnicos e garanta o seu com entrega segura e preço promocional direto na plataforma oficial. Não perca tempo e adquira já o seu pelo link direto: {link}\n\nEste item foi selecionado estrategicamente em nossa curadoria para entregar a melhor experiência de compra. Explore mais novidades e recomendações exclusivas em nossa vitrine oficial.\n\nTermos relacionados e tags: {tags}"
 
-  # Shopee estrito (<150 caracteres)
-  shp_leg = f"Imperdível! {nome_curto}. Confira na vitrine oficial 👇\n{link} {tags}"
+  # Shopee otimizado, magnético e estrito (<150 caracteres)
+  shp_leg = f"🔥 {nome_curto}! {destaque[:40]}... Garanta já o seu 👇\n{link} {tags}"
   if len(shp_leg) > 145:
-    shp_leg = f"Imperdível! Vitrine 👇\n{link} #achados"
+    shp_leg = f"🔥 Achado imperdível: {nome_curto} 👇\n{link} #achados"
 
   prompt_ia = f"Cinematic UGC video showcasing {nome_curto}, clean aesthetic background, realistic natural lighting, macro details, smooth camera movement, vertical format for Reels and TikTok"
 
-  estrategia_final = f"Motor Offline Profissional | {insight}"
+  estrategia_final = f"Motor Híbrido Profissional | {insight}"
 
-  return (
-      estrategia_final,
-      tik_tit,
-      tik_leg,
-      insta_tit,
-      insta_leg,
-      pin_tit,
-      pin_desc,
-      shp_leg,
-      prompt_ia,
-  )
+  return estrategia_final, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
 
 
 # ==========================================
@@ -312,7 +356,16 @@ if menu == "🎬 Gerar":
       prod_escolhido = st.selectbox(
           "Selecione o Produto", df_produtos["nome"].tolist()
       )
-      btn_gerar = st.form_submit_button("Gerar Pacote de Roteiros Profissionais 🚀")
+      
+      # Opção de usar IA caso esteja configurada
+      modo_gen = "⚡ Motor Offline Profissional"
+      if IA_DISPONIVEL:
+        modo_gen = st.radio(
+            "Escolha o Motor:",
+            ["⚡ Motor Offline Profissional", "🤖 Usar Inteligência Artificial (Gemini)"]
+        )
+
+      btn_gerar = st.form_submit_button("Gerar Pacote de Roteiros 🚀")
 
       if btn_gerar:
         prod_row = df_produtos.loc[
@@ -334,8 +387,9 @@ if menu == "🎬 Gerar":
         )
 
         _, _, _, _, insight_gerado = limpar_e_extrair_shopee(n_longo)
+        usar_ia = True if "Inteligência Artificial" in modo_gen else False
 
-        with st.spinner("Processando roteiros customizados..."):
+        with st.spinner("Processando roteiros e otimizando..."):
           (
               estrategia,
               tik_tit,
@@ -353,6 +407,7 @@ if menu == "🎬 Gerar":
               nicho,
               destaque,
               insight_gerado,
+              usar_ia_forcado=usar_ia,
           )
 
         run_query(
@@ -380,7 +435,7 @@ if menu == "🎬 Gerar":
     st.info("Catálogo vazio ou todos os produtos já gerados!")
 
 elif menu == "📋 Pendentes":
-  st.markdown("### 📋 Central de Pendentes")
+  st.markdown("### 📋 Central de Pendentes (Com Cópia Rápida 📋)")
 
   df_kanban = run_query(
       "SELECT c.id, p.nome_curto as produto, c.estrategia_ia, c.status,"
@@ -400,6 +455,7 @@ elif menu == "📋 Pendentes":
       with st.expander(f"[{status_ico}] {nome_p}"):
         st.info(f"💡 {row['estrategia_ia']}")
 
+        # CAMPOS COM CÓPIA RÁPIDA INTEGRADA VIA PARÂMETRO DO STREAMLIT
         st.text_input(
             "TikTok Gancho",
             value=row["tik_titulo_video"] or "",
@@ -434,7 +490,7 @@ elif menu == "📋 Pendentes":
             key=f"pd_{row['id']}",
         )
         st.text_area(
-            "Shopee Legenda (Curta, <150 caracteres)",
+            "Shopee Legenda (<150 caracteres)",
             value=row["shp_legenda"] or "",
             height=60,
             key=f"sl_{row['id']}",
@@ -475,7 +531,7 @@ elif menu == "📦 Catálogo":
   with st.form("form_cat_manual"):
     texto_zap = st.text_area(
         "Cole a mensagem do WhatsApp ou Link Shopee:",
-        placeholder="Dê uma olhada em Kit Shampoo Infantil por R$35...",
+        placeholder="Dê uma olhada em...",
     )
     
     nicho_escolhido = st.selectbox("Pasta / Grupo do Pinterest:", lista_nichos)
