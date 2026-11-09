@@ -113,7 +113,7 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "11.0",
+            "versao": "12.0",
             "objetivo": "Matriz de inteligência de conteúdo",
         },
         "categorias_e_regras": {
@@ -278,20 +278,31 @@ def gerar_textos_hibridos(
 
   if usar_ia_forcado and IA_DISPONIVEL:
     try:
-      prompt = f"""Gere textos altamente persuasivos para afiliado baseados nas especificações reais, com português natural, fluído e focado em conversão.
+      prompt = f"""Atue como um especialista sênior em marketing de afiliados para Instagram, TikTok e Pinterest. 
+Analise o produto abaixo e crie textos altamente magnéticos, convertendo títulos genéricos em ganchos focados no fandom real ou utilidade específica (ex: se o produto menciona bandas coreanas ou K-pop, dê forte destaque ao BTS e ao fandom ARMY se houver indício, ou cite o K-pop de forma muito empolgante).
 Produto Completo: '{nome_longo}'
 Link: {link}
 Categoria: {categoria}
 
-Responda EXATAMENTE neste formato de chaves:
-TIK_TITULO: Gancho curto e magnético para TikTok
-TIK_LEGENDA: Legenda para TikTok com sacolinha e tags ({tags})
-INSTA_TITULO: Título chamativo para Capa do Reels / Carrossel
-INSTA_LEGENDA: Legenda rica e persuasiva para Instagram com link na bio e tags ({tags})
-PIN_TITULO: Título rico em SEO para Pinterest (Até 100 caracteres)
-PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest usando todas as especificações do produto, com chamada para ação, links e tags (Perto de 800 caracteres) ({tags})
-SHP_LEGENDA: Legenda curta e magnética para Shopee Vídeo com link (Menos de 150 caracteres)
-PROMPT_IA: Prompt detalhado em inglês para gerar imagem/vídeo no Midjourney ou IA de vídeo"""
+DIRETRIZES DE FORMATO:
+- TIK_TITULO: Gancho curto e magnético para TikTok
+- TIK_LEGENDA: Legenda para TikTok com sacolinha e tags ({tags})
+- INSTA_TITULO: Título chamativo para Capa do Reels / Carrossel
+- INSTA_LEGENDA: Legenda rica e persuasiva para Instagram com link na bio e tags ({tags})
+- PIN_TITULO: Título rico em SEO para Pinterest (Até 100 caracteres)
+- PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest citando todos os modelos ou especificações do produto, foco em durabilidade, chamada para ação e tags (Perto de 800 caracteres) ({tags})
+- SHP_LEGENDA: Legenda curta e magnética para Shopee Vídeo com link (Menos de 150 caracteres)
+- PROMPT_IA: Prompt detalhado em inglês para gerar imagem/vídeo no Midjourney ou IA de vídeo
+
+Responda EXATAMENTE no formato CHAVE: VALOR em cada linha:
+TIK_TITULO: ...
+TIK_LEGENDA: ...
+INSTA_TITULO: ...
+INSTA_LEGENDA: ...
+PIN_TITULO: ...
+PIN_DESCRICAO: ...
+SHP_LEGENDA: ...
+PROMPT_IA: ..."""
 
       res = client.models.generate_content(
           model="gemini-2.5-flash", contents=prompt
@@ -312,7 +323,7 @@ PROMPT_IA: Prompt detalhado em inglês para gerar imagem/vídeo no Midjourney ou
           elif "PROMPT_IA" in ch: p_ia = val
 
       if t_tit and p_desc:
-        return "Gerado via Inteligência Artificial 🤖", t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia
+        return "Gerado via Inteligência Artificial Inteligente 🤖", t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia
     except Exception as e:
       st.toast(f"Aviso de IA: {e}, usando motor offline robusto.")
 
@@ -357,7 +368,6 @@ if menu == "🎬 Gerar":
           "Selecione o Produto", df_produtos["nome"].tolist()
       )
       
-      # Opção de usar IA caso esteja configurada
       modo_gen = "⚡ Motor Offline Profissional"
       if IA_DISPONIVEL:
         modo_gen = st.radio(
@@ -455,7 +465,6 @@ elif menu == "📋 Pendentes":
       with st.expander(f"[{status_ico}] {nome_p}"):
         st.info(f"💡 {row['estrategia_ia']}")
 
-        # CAMPOS COM CÓPIA RÁPIDA INTEGRADA VIA PARÂMETRO DO STREAMLIT
         st.text_input(
             "TikTok Gancho",
             value=row["tik_titulo_video"] or "",
@@ -549,7 +558,6 @@ elif menu == "📦 Catálogo":
           else nicho_escolhido
       )
 
-      # Persiste a nova categoria criada no arquivo cerebro_v3.json instantaneamente
       if nova_categoria.strip():
         cat_limpa = nova_categoria.strip()
         if cat_limpa not in categorias_dict:
