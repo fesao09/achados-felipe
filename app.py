@@ -113,7 +113,7 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "12.0",
+            "versao": "14.0",
             "objetivo": "Matriz de inteligência de conteúdo",
         },
         "categorias_e_regras": {
@@ -278,23 +278,28 @@ def gerar_textos_hibridos(
 
   if usar_ia_forcado and IA_DISPONIVEL:
     try:
-      prompt = f"""Atue como um especialista sênior em marketing de afiliados para Instagram, TikTok e Pinterest. 
-Analise o produto abaixo e crie textos altamente magnéticos, convertendo títulos genéricos em ganchos focados no fandom real ou utilidade específica (ex: se o produto menciona bandas coreanas ou K-pop, dê forte destaque ao BTS e ao fandom ARMY se houver indício, ou cite o K-pop de forma muito empolgante).
-Produto Completo: '{nome_longo}'
-Link: {link}
-Categoria: {categoria}
+      prompt = f"""Atue como o Felipe (especialista sênior em marketing de afiliados de alta conversão, dono do canal "Achados do Felipe"). 
+Você escreve com um tom de voz humano, direto, natural, persuasivo e acolhedor — exatamente como um criador de conteúdo que indica um achado imperdível para amigos e seguidores. 
+PROIBIDO estritamente o uso de gírias robóticas, termos genéricos vazios ou clichês forçados (como 'vibe', 'stans', 'maratona MVs' ou linguagem de IA corporativa). Foque estritamente nos benefícios práticos do produto, utilidade real, qualidade do material e na conexão com o público-alvo ou fandom se houver indício (ex: se o produto for de K-pop/BTS, fale de forma natural sobre o amor pelo grupo e proteção do aparelho).
 
-DIRETRIZES DE FORMATO:
-- TIK_TITULO: Gancho curto e magnético para TikTok
-- TIK_LEGENDA: Legenda para TikTok com sacolinha e tags ({tags})
-- INSTA_TITULO: Título chamativo para Capa do Reels / Carrossel
-- INSTA_LEGENDA: Legenda rica e persuasiva para Instagram com link na bio e tags ({tags})
-- PIN_TITULO: Título rico em SEO para Pinterest (Até 100 caracteres)
-- PIN_DESCRICAO: Descrição rica, técnica e completa para Pinterest citando todos os modelos ou especificações do produto, foco em durabilidade, chamada para ação e tags (Perto de 800 caracteres) ({tags})
-- SHP_LEGENDA: Legenda curta e magnética para Shopee Vídeo com link (Menos de 150 caracteres)
-- PROMPT_IA: Prompt detalhado em inglês para gerar imagem/vídeo no Midjourney ou IA de vídeo
+DADOS DO PRODUTO PARA ANÁLISE:
+- Produto Completo: '{nome_longo}'
+- Link de Afiliado: {link}
+- Categoria / Pasta do Pinterest: {categoria}
+- Tags Obrigatórias da Pasta: {tags}
 
-Responda EXATAMENTE no formato CHAVE: VALOR em cada linha:
+GERE O PACOTE DE CONTEÚDO SEGUINDO RIGOROSAMENTE ESTAS REGRAS DE CADA REDE:
+
+1. TIK_TITULO: Um gancho curto, magnético e instigante para o início do vídeo no TikTok/Reels (máximo 60 caracteres).
+2. TIK_LEGENDA: Uma legenda dinâmica para o TikTok, chamando para a sacolinha amarela de forma natural e engajadora, finalizando com as tags obrigatórias: {tags}.
+3. INSTA_TITULO: Um título forte e chamativo para a capa do Reels ou carrossel do Instagram.
+4. INSTA_LEGENDA: Uma legenda rica e fluida para o Instagram. Comece gerando curiosidade ou valorizando o produto, explique por que ele vale a pena, insira uma chamada clara para o link na bio e feche com as tags: {tags}.
+5. PIN_TITULO: Um título limpo, direto e altamente otimizado para SEO do Pinterest (Até 100 caracteres).
+6. PIN_DESCRICAO: Uma descrição rica, técnica e completa para o Pinterest (Perto de 800 caracteres). Varre todos os detalhes do produto, modelos compatíveis (se houver), durabilidade, utilidade prática, uma forte chamada para ação com o link e as tags: {tags}.
+7. SHP_LEGENDA: Uma legenda curta, magnética e direta para o Shopee Vídeo contendo o link. Deve ser viciante e obrigatoriamente TER MENOS DE 150 CARACTERES.
+8. PROMPT_IA: Um prompt visual detalhado e realista em inglês (otimizado para Midjourney ou IA de vídeo B-Roll) descrevendo uma cena estética, limpa e profissional com o produto em uso real.
+
+Responda EXATAMENTE no formato CHAVE: VALOR em cada linha (sem markdown adicional nos nomes das chaves):
 TIK_TITULO: ...
 TIK_LEGENDA: ...
 INSTA_TITULO: ...
@@ -323,7 +328,7 @@ PROMPT_IA: ..."""
           elif "PROMPT_IA" in ch: p_ia = val
 
       if t_tit and p_desc:
-        return "Gerado via Inteligência Artificial Inteligente 🤖", t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia
+        return "Gerado via Inteligência Artificial Humanizada 🤖", t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia
     except Exception as e:
       st.toast(f"Aviso de IA: {e}, usando motor offline robusto.")
 
@@ -337,7 +342,6 @@ PROMPT_IA: ..."""
   pin_tit = f"{nome_curto} - Detalhes, Benefícios e Onde Comprar"
   pin_desc = f"Procurando por {nome_longo}? Descubra todos os diferenciais desta excelente opção na categoria {categoria}. {destaque} Desenvolvido com foco total em qualidade, eficiência e utilidade real para o seu dia a dia. Excelente escolha para quem busca o melhor custo-benefício do mercado sem abrir mão de um desempenho impecável. Confira as avaliações, veja todos os detalhes técnicos e garanta o seu com entrega segura e preço promocional direto na plataforma oficial. Não perca tempo e adquira já o seu pelo link direto: {link}\n\nEste item foi selecionado estrategicamente em nossa curadoria para entregar a melhor experiência de compra. Explore mais novidades e recomendações exclusivas em nossa vitrine oficial.\n\nTermos relacionados e tags: {tags}"
 
-  # Shopee otimizado, magnético e estrito (<150 caracteres)
   shp_leg = f"🔥 {nome_curto}! {destaque[:40]}... Garanta já o seu 👇\n{link} {tags}"
   if len(shp_leg) > 145:
     shp_leg = f"🔥 Achado imperdível: {nome_curto} 👇\n{link} #achados"
@@ -537,6 +541,7 @@ elif menu == "📦 Catálogo":
   lista_nichos = list(categorias_dict.keys())
   lista_nichos.append("➕ Criar Nova Categoria / Grupo...")
 
+  # CADASTRO UNIFICADO: Cria a categoria e salva o produto de uma só vez (sem duplicar)
   with st.form("form_cat_manual"):
     texto_zap = st.text_area(
         "Cole a mensagem do WhatsApp ou Link Shopee:",
@@ -547,25 +552,23 @@ elif menu == "📦 Catálogo":
 
     nova_categoria = ""
     if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
-      nova_categoria = st.text_input("Digite o nome limpo e exato da pasta (ex: Jogos, K-Pop, etc.):")
+      nova_categoria = st.text_input("Digite o nome limpo e exato da nova pasta (ex: K-Pop, Jogos, etc.):")
 
-    enviar = st.form_submit_button("Analisar e Salvar no Catálogo 🚀")
+    enviar = st.form_submit_button("Cadastrar Produto e Salvar Grupo 🚀")
 
     if enviar and texto_zap:
-      categoria_final = (
-          nova_categoria.strip()
-          if nova_categoria.strip()
-          else nicho_escolhido
-      )
+      categoria_final = nicho_escolhido
+      if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
+        if nova_categoria.strip():
+          categoria_final = nova_categoria.strip()
+        else:
+          categoria_final = "Geral"
 
-      if nova_categoria.strip():
-        cat_limpa = nova_categoria.strip()
-        if cat_limpa not in categorias_dict:
-          cerebro.setdefault("categorias_e_regras", {})[cat_limpa] = {
-              "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil", f"#{cat_limpa.lower().replace(' ', '')}"],
-          }
-          salvar_cerebro(cerebro)
-          categoria_final = cat_limpa
+      if categoria_final not in categorias_dict and categoria_final != "➕ Criar Nova Categoria / Grupo...":
+        cerebro.setdefault("categorias_e_regras", {})[categoria_final] = {
+            "tags_obrigatorias": ["#achadosshopee", "#shopeebrasil", f"#{categoria_final.lower().replace(' ', '')}"],
+        }
+        salvar_cerebro(cerebro)
 
       nome_puro, nome_curto, link_limpo, frase_destaque, _ = (
           limpar_e_extrair_shopee(texto_zap)
@@ -577,7 +580,7 @@ elif menu == "📦 Catálogo":
           (nome_puro, nome_curto, frase_destaque, categoria_final, link_limpo),
           fetch=False,
       )
-      st.success(f"Sucesso! Produto cadastrado e grupo '{categoria_final}' salvo no cérebro com sucesso!")
+      st.success(f"Sucesso! Produto cadastrado na pasta '{categoria_final}' de primeira!")
       st.rerun()
 
   st.markdown("---")
