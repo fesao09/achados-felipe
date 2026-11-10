@@ -113,7 +113,7 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "17.0",
+            "versao": "18.0",
             "objetivo": "Matriz de inteligência de conteúdo",
         },
         "categorias_e_regras": {
@@ -243,6 +243,8 @@ def limpar_e_extrair_shopee(texto_bruto):
     frase_destaque = "Ativos de alta performance para uma rotina de cuidados impecável e resultados visíveis."
   elif any(k in t_lower for k in ["omo", "surf", "coala", "limpeza", "faxina", "desinfetante"]):
     frase_destaque = "Alto rendimento e poder de limpeza superior para deixar tudo limpo e perfumado."
+  elif any(k in t_lower for k in ["trento", "chocolate", "wafer", "doce", "snack"]):
+    frase_destaque = "Crocância incomparável, recheio cremoso e sabor irresistível para o seu momento de pausa."
   else:
     frase_destaque = "Design funcional, excelente acabamento e praticidade garantida para o seu dia a dia."
 
@@ -295,9 +297,9 @@ GERE O PACOTE DE CONTEÚDO SEGUINDO RIGOROSAMENTE ESTAS REGRAS DE CADA REDE:
 3. INSTA_TITULO: Um título forte e chamativo para a capa do Reels ou carrossel do Instagram.
 4. INSTA_LEGENDA: Uma legenda rica e fluida para o Instagram. Comece gerando curiosidade ou valorizando o produto, explique por que ele vale a pena, insira uma chamada clara para o link na bio e feche com as tags: {tags}.
 5. PIN_TITULO: Um título limpo, direto e altamente otimizado para SEO do Pinterest (Até 100 caracteres).
-6. PIN_DESCRICAO: Uma descrição rica, técnica e completa para o Pinterest (Perto de 800 caracteres). Varre todos os detalhes do produto, modelos compatíveis (se houver), durabilidade, utilidade prática, uma forte chamada para ação com o link e as tags: {tags}.
+6. PIN_DESCRICAO: Uma descrição rica, técnica e completa para o Pinterest (Perto de 800 caracteres). Varre todos os detalhes do produto, modelos ou especificações compatíveis, durabilidade, utilidade prática, uma forte chamada para ação com o link e as tags: {tags}.
 7. SHP_LEGENDA: Uma legenda curta, magnética e direta para o Shopee Vídeo contendo o link. Deve ser viciante e obrigatoriamente TER MENOS DE 150 CARACTERES.
-8. PROMPT_IA: Um prompt visual detalhado e realista em inglês (otimizado para Midjourney ou IA de vídeo B-Roll) descrevendo uma cena estética, limpa e profissional com o produto em uso real.
+8. PROMPT_IA: Um prompt visual detalhado e realista em inglês para gerar uma foto profissional de produto, descrevendo explicitamente um tubinho cilíndrico e crocante de wafer recheado (slender cylindrical filled wafer stick, red wrapper with white typography) colocado ao lado de uma xícara de café com iluminação lateral suave, macro detalhes, formato vertical.
 
 Responda EXATAMENTE no formato CHAVE: VALOR em cada linha (sem markdown adicional nos nomes das chaves):
 TIK_TITULO: ...
@@ -346,7 +348,7 @@ PROMPT_IA: ..."""
   if len(shp_leg) > 145:
     shp_leg = f"🔥 Achado imperdível: {nome_curto} 👇\n{link} #achados"
 
-  prompt_ia = f"Cinematic UGC video showcasing {nome_curto}, clean aesthetic background, realistic natural lighting, macro details, smooth camera movement, vertical format for Reels and TikTok"
+  prompt_ia = f"Cinematic product photography of a slender cylindrical filled wafer stick resembling {nome_curto}, clean aesthetic background, realistic natural lighting, macro details, vertical format for Reels and TikTok"
 
   estrategia_final = f"Motor Híbrido Profissional | {insight}"
 
@@ -449,7 +451,7 @@ if menu == "🎬 Gerar":
     st.info("Catálogo vazio ou todos os produtos já gerados!")
 
 elif menu == "📋 Pendentes":
-  st.markdown("### 📋 Central de Pendentes (Com Blocos de Cópia Rápida 📋)")
+  st.markdown("### 📋 Central de Pendentes (Com Cópia Nativa em Cada Bloco)")
 
   df_kanban = run_query(
       "SELECT c.id, p.nome_curto as produto, c.estrategia_ia, c.status,"
@@ -469,7 +471,7 @@ elif menu == "📋 Pendentes":
       with st.expander(f"[{status_ico}] {nome_p} (ID: {row['id']})"):
         st.info(f"💡 {row['estrategia_ia']}")
 
-        # USANDO ST.CODE PARA GARANTIR O BOTÃO DE CÓPIA NATIVO QUE FUNCIONA NO CELULAR E PC
+        # UTILIZANDO ST.CODE PARA GARANTIR O BOTÃO DE CÓPIA PERFEITO NO CELULAR E PC
         st.markdown("**TikTok Gancho**")
         st.code(row["tik_titulo_video"] or "", language="text")
 
@@ -532,7 +534,7 @@ elif menu == "📦 Catálogo":
 
   nova_categoria = ""
   if nicho_escolhido == "➕ Criar Nova Categoria / Grupo...":
-    nova_categoria = st.text_input("Digite o nome exato da nova pasta (ex: Eletrônicos, K-Pop, etc.):", key="input_nova_cat")
+    nova_categoria = st.text_input("Digite o nome exato da nova pasta (ex: Eletrônicos, K-Pop, Doces, etc.):", key="input_nova_cat")
 
   if st.button("Cadastrar Produto e Salvar Grupo 🚀", key="btn_salvar_cat"):
     if not texto_zap.strip():
