@@ -113,7 +113,7 @@ def carregar_cerebro():
   if not os.path.exists(CEREBRO_FILE):
     default_base = {
         "configuracao_geral": {
-            "versao": "18.0",
+            "versao": "19.0",
             "objetivo": "Matriz de inteligência de conteúdo",
         },
         "categorias_e_regras": {
@@ -214,7 +214,7 @@ except Exception:
   pass
 
 
-# --- EXTRATOR DE ATRIBUTOS E HÍBRIDO ---
+# --- EXTRATOR DE ATRIBUTOS E HÍBRIDO INTELIGENTE ---
 def limpar_e_extrair_shopee(texto_bruto):
   link_puro = texto_bruto
   for p in texto_bruto.split():
@@ -235,23 +235,23 @@ def limpar_e_extrair_shopee(texto_bruto):
 
   t_lower = nome_puro.lower()
 
-  if any(k in t_lower for k in ["shampoo", "condicionador", "cabelo", "infantil", "infante", "banho"]):
-    frase_destaque = "Fórmula dermatologicamente testada, cheirinho duradouro e cuidado delicado para o dia a dia."
-  elif any(k in t_lower for k in ["creatina", "whey", "suplemento", "proteina", "treino"]):
-    frase_destaque = "Alta pureza e concentração ideal para turbinar seus resultados diários."
-  elif any(k in t_lower for k in ["creamy", "cerave", "principia", "sérum", "protetor solar", "pele"]):
-    frase_destaque = "Ativos de alta performance para uma rotina de cuidados impecável e resultados visíveis."
-  elif any(k in t_lower for k in ["omo", "surf", "coala", "limpeza", "faxina", "desinfetante"]):
-    frase_destaque = "Alto rendimento e poder de limpeza superior para deixar tudo limpo e perfumado."
+  # DETECÇÃO INTELIGENTE DE NICHO PARA O MODO OFFLINE
+  if any(k in t_lower for k in ["controle", "xbox", "playstation", "joystick", "gamer", "console"]):
+    frase_destaque = "Produto original lacrado, ergonomia perfeita e resposta ultra-rápida nos comandos para máxima imersão."
+    insight_formato = "🎬 FORMATO IDEAL: VÍDEO DEMONSTRATIVO (Unboxing ou jogabilidade ao fundo engaja muito)."
+    prompt_base_ia = f"Professional product photography of a sleek wireless gaming controller, clean minimalist setup, soft ambient backlighting with subtle RGB glow, dark matte surface, high-end tech aesthetic, 9:16 format"
+  elif any(k in t_lower for k in ["shampoo", "condicionador", "cabelo", "infantil", "salon line", "litro"]):
+    frase_destaque = "Hidratação profunda, tamanho família de 1L e resultado profissional direto em casa."
+    insight_formato = "📸 FORMATO IDEAL: CARROSSEL ESTÁTICO OU FOTOS (Comparativo de antes e depois e foco no tamanho)."
+    prompt_base_ia = f"Cinematic vertical product photography of a large 1L hair care product set, clean modern bathroom background, natural lighting, macro details, 9:16 format"
   elif any(k in t_lower for k in ["trento", "chocolate", "wafer", "doce", "snack"]):
     frase_destaque = "Crocância incomparável, recheio cremoso e sabor irresistível para o seu momento de pausa."
+    insight_formato = "📸 FORMATO IDEAL: CARROSSEL ESTÁTICO OU FOTOS (Detalhes visuais e close nos benefícios funcionam melhor)."
+    prompt_base_ia = f"Cinematic product photography of a slender cylindrical filled wafer stick, clean aesthetic background, realistic natural lighting, macro details, vertical format for Reels and TikTok"
   else:
     frase_destaque = "Design funcional, excelente acabamento e praticidade garantida para o seu dia a dia."
-
-  if any(k in t_lower for k in ["caixa", "som", "fone", "smart", "automático", "robo", "aspirador", "kit"]):
-    insight_formato = "🎬 FORMATO IDEAL: VÍDEO DINÂMICO (Demonstração prática em funcionamento gera muito mais cliques)."
-  else:
     insight_formato = "📸 FORMATO IDEAL: CARROSSEL ESTÁTICO OU FOTOS (Detalhes visuais e close nos benefícios funcionam melhor)."
+    prompt_base_ia = f"Cinematic vertical product photography of {nome_puro[:30]}, clean background, professional studio lighting, 9:16 format"
 
   palavras = nome_puro.split()
   nome_curto = " ".join(palavras[:6]).rstrip(",-:")
@@ -259,7 +259,7 @@ def limpar_e_extrair_shopee(texto_bruto):
     nome_curto = "Achado Imperdível"
     nome_puro = "Produto Shopee"
 
-  return nome_puro, nome_curto, link_puro, frase_destaque, insight_formato
+  return nome_puro, nome_curto, link_puro, frase_destaque, insight_formato, prompt_base_ia
 
 
 def gerar_textos_hibridos(
@@ -269,6 +269,7 @@ def gerar_textos_hibridos(
     categoria,
     destaque,
     insight,
+    prompt_fallback_ia,
     usar_ia_forcado=False,
 ):
   cerebro = carregar_cerebro()
@@ -299,7 +300,7 @@ GERE O PACOTE DE CONTEÚDO SEGUINDO RIGOROSAMENTE ESTAS REGRAS DE CADA REDE:
 5. PIN_TITULO: Um título limpo, direto e altamente otimizado para SEO do Pinterest (Até 100 caracteres).
 6. PIN_DESCRICAO: Uma descrição rica, técnica e completa para o Pinterest (Perto de 800 caracteres). Varre todos os detalhes do produto, modelos ou especificações compatíveis, durabilidade, utilidade prática, uma forte chamada para ação com o link e as tags: {tags}.
 7. SHP_LEGENDA: Uma legenda curta, magnética e direta para o Shopee Vídeo contendo o link. Deve ser viciante e obrigatoriamente TER MENOS DE 150 CARACTERES.
-8. PROMPT_IA: Um prompt visual detalhado e realista em inglês para gerar uma foto profissional de produto, descrevendo explicitamente um tubinho cilíndrico e crocante de wafer recheado (slender cylindrical filled wafer stick, red wrapper with white typography) colocado ao lado de uma xícara de café com iluminação lateral suave, macro detalhes, formato vertical.
+8. PROMPT_IA: Um prompt visual detalhado e realista em inglês para gerar uma foto profissional estritamente relacionada ao produto analisado ('{nome_longo}'), em formato vertical 9:16 (ex: se for controle gamer, descreva um controle em setup minimalista com LED; se for cosmético, um banheiro limpo; etc.).
 
 Responda EXATAMENTE no formato CHAVE: VALOR em cada linha (sem markdown adicional nos nomes das chaves):
 TIK_TITULO: ...
@@ -330,7 +331,7 @@ PROMPT_IA: ..."""
           elif "PROMPT_IA" in ch: p_ia = val
 
       if t_tit and p_desc:
-        return "Gerado via Inteligência Artificial Humanizada 🤖", t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia
+        return "Gerado via Inteligência Artificial Humanizada 🤖", t_tit, t_leg, i_tit, i_leg, p_tit, p_desc, s_leg, p_ia if p_ia else prompt_fallback_ia
     except Exception as e:
       st.toast(f"Aviso de IA: {e}, usando motor offline robusto.")
 
@@ -348,8 +349,7 @@ PROMPT_IA: ..."""
   if len(shp_leg) > 145:
     shp_leg = f"🔥 Achado imperdível: {nome_curto} 👇\n{link} #achados"
 
-  prompt_ia = f"Cinematic product photography of a slender cylindrical filled wafer stick resembling {nome_curto}, clean aesthetic background, realistic natural lighting, macro details, vertical format for Reels and TikTok"
-
+  prompt_ia = prompt_fallback_ia
   estrategia_final = f"Motor Híbrido Profissional | {insight}"
 
   return estrategia_final, tik_tit, tik_leg, insta_tit, insta_leg, pin_tit, pin_desc, shp_leg, prompt_ia
@@ -402,7 +402,7 @@ if menu == "🎬 Gerar":
             else "Qualidade garantida!"
         )
 
-        _, _, _, _, insight_gerado = limpar_e_extrair_shopee(n_longo)
+        _, _, _, _, insight_gerado, prompt_base_ia = limpar_e_extrair_shopee(n_longo)
         usar_ia = True if "Inteligência Artificial" in modo_gen else False
 
         with st.spinner("Processando roteiros e otimizando..."):
@@ -423,6 +423,7 @@ if menu == "🎬 Gerar":
               nicho,
               destaque,
               insight_gerado,
+              prompt_base_ia,
               usar_ia_forcado=usar_ia,
           )
 
@@ -553,7 +554,7 @@ elif menu == "📦 Catálogo":
         }
         salvar_cerebro(cerebro)
 
-      nome_puro, nome_curto, link_limpo, frase_destaque, _ = (
+      nome_puro, nome_curto, link_limpo, frase_destaque, _, _ = (
           limpar_e_extrair_shopee(texto_zap)
       )
 
