@@ -1,38 +1,100 @@
 {
-    "configuracao_geral": {
-        "versao": "10.0",
-        "objetivo": "Matriz de inteligência alinhada rigorosamente às pastas do Pinterest e às diretrizes de postagem do Felipe."
+  "configuracao_geral": {
+    "versao": "10.0",
+    "objetivo": "Matriz de inteligência alinhada rigorosamente às pastas do Pinterest e às diretrizes de postagem do Felipe."
+  },
+  "categorias_e_regras": {
+    "Beleza e Cuidados": {
+      "tags_obrigatorias": [
+        "#achadosshopee",
+        "#beleza",
+        "#cuidadopessoal",
+        "#shopeebr"
+      ]
     },
-    "categorias_e_regras": {
-        "Beleza e Cuidados": {
-            "tags_obrigatorias": ["#achadosshopee", "#beleza", "#cuidadopessoal", "#shopeebr"]
-        },
-        "Skincare": {
-            "tags_obrigatorias": ["#skincare", "#cerave", "#principia", "#creamy", "#achadosshopee", "#rotinafacial"]
-        },
-        "Utilidades para Casa": {
-            "tags_obrigatorias": ["#achadosshopee", "#utilidadesdomesticas", "#donadecasa", "#shopeebr"]
-        },
-        "Limpeza e Lavanderia": {
-            "tags_obrigatorias": ["#donadecasa", "#limpezapesada", "#omo", "#coala", "#achadosshopee"]
-        },
-        "Maternidade e Bebê": {
-            "tags_obrigatorias": ["#achadosshopee", "#maternidade", "#bebe", "#enxoval", "#shopeebr"]
-        },
-        "Brinquedos e Jogos": {
-            "tags_obrigatorias": ["#brinquedos", "#montessori", "#criancas", "#achadinhosshopee"]
-        },
-        "Moda e Estilo": {
-            "tags_obrigatorias": ["#achadosshopee", "#moda", "#lookdodia", "#shopeebr"]
-        },
-        "Eletrônicos e Tech": {
-            "tags_obrigatorias": ["#achadosshopee", "#tecnologia", "#gadgets", "#shopeebr"]
-        },
-        "Café e Snacks": {
-            "tags_obrigatorias": ["#cafe", "#dolcegusto", "#docesimportados", "#achadosshopee"]
-        },
-        "Suplementação e Fitness": {
-            "tags_obrigatorias": ["#suplementos", "#creatina", "#wheyprotein", "#fitness", "#achadosshopee"]
-        }
+    "Skincare": {
+      "tags_obrigatorias": [
+        "#skincare",
+        "#cerave",
+        "#principia",
+        "#creamy",
+        "#achadosshopee",
+        "#rotinafacial"
+      ]
+    },
+    "Utilidades para Casa": {
+      "tags_obrigatorias": [
+        "#achadosshopee",
+        "#utilidadesdomesticas",
+        "#donadecasa",
+        "#shopeebr"
+      ]
+    },
+    "Limpeza e Lavanderia": {
+      "tags_obrigatorias": [
+        "#donadecasa",
+        "#limpezapesada",
+        "#omo",
+        "#coala",
+        "#achadosshopee"
+      ]
+    },
+    "Maternidade e Bebê": {
+      "tags_obrigatorias": [
+        "#achadosshopee",
+        "#maternidade",
+        "#bebe",
+        "#enxoval",
+        "#shopeebr"
+      ]
+    },
+    "Brinquedos e Jogos": {
+      "tags_obrigatorias": [
+        "#brinquedos",
+        "#montessori",
+        "#criancas",
+        "#achadinhosshopee"
+      ]
+    },
+    "Moda e Estilo": {
+      "tags_obrigatorias": [
+        "#achadosshopee",
+        "#moda",
+        "#lookdodia",
+        "#shopeebr"
+      ]
+    },
+    "Eletrônicos e Tech": {
+      "tags_obrigatorias": [
+        "#achadosshopee",
+        "#tecnologia",
+        "#gadgets",
+        "#shopeebr"
+      ]
+    },
+    "Café e Snacks": {
+      "tags_obrigatorias": [
+        "#cafe",
+        "#dolcegusto",
+        "#docesimportados",
+        "#achadosshopee"
+      ]
+    },
+    "Suplementação e Fitness": {
+      "tags_obrigatorias": [
+        "#suplementos",
+        "#creatina",
+        "#wheyprotein",
+        "#fitness",
+        "#achadosshopee"
+      ]
+    },
+    "Decoração de Natal": {
+      "tags_obrigatorias": [
+        "#achados",
+        "#dicasdecompras",
+        "#decoraçãodenatal"
+      ]
     }
+  }
 }
