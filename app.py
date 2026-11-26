@@ -2,7 +2,7 @@
 """
 Achados do Felipe - Dashboard Oficial (app.py)
 Autor: Felipe de Oliveira Gonçalves (@achadosfelipe01)
-Persistência em Nuvem via GitHub API (Imune à hibernação do Streamlit)
+Persistência em Nuvem via GitHub API + Copy Contextual Sem Clichês
 """
 
 import base64
@@ -175,8 +175,8 @@ def salvar_banco(dados, msg="Atualiza banco_achados.json"):
 def carregar_cerebro(forcar_nuvem=False):
   padrao = {
       "configuracao_geral": {
-          "versao": "23.0",
-          "objetivo": "Matriz de inteligência de conteúdo multiplataforma",
+          "versao": "24.0",
+          "objetivo": "Matriz de inteligência de conteúdo contextual",
       },
       "categorias_e_regras": {
           "Utilidades para Casa": {
@@ -327,12 +327,48 @@ def tentar_extrair_titulo_por_url(url):
   return ""
 
 
-# --- EXTRATOR DE ATRIBUTOS E HÍBRIDO INTELIGENTE ---
+# --- MONTADOR INTELIGENTE DE LEGENDA CURTA (<= 150 CARACTERES COM HASHTAGS) ---
+def montar_legenda_curta_150(nome_curto, beneficio_curto, link, tags_lista):
+  """Garante legenda atrativa + link + hashtags estritamente abaixo de 150 caracteres."""
+  limite = 148
+  # Seleciona 2 hashtags curtas e relevantes
+  tags_curtas = [t for t in tags_lista if len(t) <= 18][:2]
+  if not tags_curtas:
+    tags_curtas = ["#achados", "#ofertas"]
+  tags_str = " ".join(tags_curtas)
+
+  # Tenta formato completo: Benefício + Link + Hashtags
+  candidato_1 = f"{beneficio_curto} 👇\n{link}\n{tags_str}"
+  if len(candidato_1) <= limite:
+    return candidato_1
+
+  # Tenta formato com nome curto + Link + Hashtags
+  candidato_2 = f"{nome_curto} 👇\n{link}\n{tags_str}"
+  if len(candidato_2) <= limite:
+    return candidato_2
+
+  # Ajusta o texto antes do link para caber exatamente com link + hashtags
+  fixo = f" 👇\n{link}\n{tags_str}"
+  espaco_texto = limite - len(fixo)
+  if espaco_texto >= 12:
+    texto_cortado = nome_curto[:espaco_texto].rstrip(" ,.-:")
+    return f"{texto_cortado}{fixo}"
+
+  # Fallback caso o link seja muito longo: prioriza texto + 1 hashtag + link
+  tag_unica = tags_curtas[0]
+  fixo_min = f"\n{link} {tag_unica}"
+  espaco_min = limite - len(fixo_min)
+  if espaco_min >= 8:
+    return f"{nome_curto[:espaco_min].rstrip()}{fixo_min}"
+
+  return f"{nome_curto[:30]} 👇\n{link}"[:limite]
+
+
+# --- EXTRATOR DE ATRIBUTOS E CONTEXTO POR TIPO DE PRODUTO ---
 def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
   link_puro = ""
   for p in texto_bruto.split():
     if p.startswith("http"):
-      # Preserva parâmetros de rastreamento de afiliado
       link_puro = p.rstrip(".,;)")
       break
 
@@ -359,6 +395,12 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
   if not link_puro:
     link_puro = texto_bruto.strip()
 
+  palavras = nome_puro.split()
+  nome_curto = " ".join(palavras[:6]).rstrip(",-:")
+  if not nome_curto:
+    nome_curto = "Achado Imperdível"
+    nome_puro = "Produto"
+
   t_lower = nome_puro.lower()
 
   if any(
@@ -367,6 +409,9 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
           "tênis",
           "tenis",
           "fila",
+          "olympikus",
+          "nike",
+          "adidas",
           "sneaker",
           "calçado",
           "calcado",
@@ -380,12 +425,15 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
           "vestuario",
           "roupa",
           "short",
+          "mochila",
       ]
   ):
+    angulo_copy = "conforto, leveza no pé/corpo e versatilidade para o dia a dia"
     frase_destaque = (
-        "Leveza e caimento prático para encarar a rotina, treino ou caminhada"
-        " sem gastar uma fortuna."
+        "Leve, confortável e versátil para encarar caminhada, treino ou a"
+        " correria do dia a dia."
     )
+    beneficio_curto = f"{nome_curto}: leve e confortável pro dia a dia"
     insight_formato = (
         "🎬 FORMATO IDEAL: VÍDEO VIRAL DE EXPERIMENTAÇÃO (Uso real em"
         " movimento, mantendo 100% da aparência original)."
@@ -400,9 +448,8 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
         " no misleading claims."
     )
     aviso_seguranca = (
-        "Vestuário/Calçado: focar em experimentação real no dia a dia,"
-        " conforto na rotina e fidelidade visual do item, sem promessas"
-        " médicas."
+        "Vestuário/Calçado: focar em conforto, caimento, leveza e uso real na"
+        " rotina, sem promessas médicas."
     )
   elif any(
       k in t_lower
@@ -419,12 +466,15 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
           "skincare",
           "creamy",
           "cerave",
+          "hidratante",
       ]
   ):
+    angulo_copy = "textura leve, absorção rápida e praticidade na rotina de autocuidado"
     frase_destaque = (
-        "Textura leve que absorve rápido e encaixa fácil na rotina diária de"
-        " cuidados com a pele."
+        "Textura leve que espalha fácil, absorve rápido e encaixa sem"
+        " complicação na rotina diária."
     )
+    beneficio_curto = f"{nome_curto}: textura leve na rotina"
     insight_formato = (
         "📸 FORMATO IDEAL: VÍDEO DE ROTINA OU CARROSSEL (Textura e aplicação"
         " real, sem promessas clínicas)."
@@ -448,25 +498,33 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
           "playstation",
           "joystick",
           "gamer",
-          "console",
+          "fone",
+          "bluetooth",
+          "carregador",
+          "power bank",
+          "suporte",
+          "led",
+          "usb",
       ]
   ):
+    angulo_copy = "resposta rápida, compatibilidade e praticidade no setup ou celular"
     frase_destaque = (
-        "Pegada firme, resposta precisa nos comandos e zero dor de cabeça com"
-        " conexão no dia a dia."
+        "Conexão rápida, encaixe firme e funcionalidade real para facilitar o"
+        " uso no dia a dia."
     )
+    beneficio_curto = f"{nome_curto}: prático e funcional no uso"
     insight_formato = (
-        "🎬 FORMATO IDEAL: VÍDEO DEMONSTRATIVO (Unboxing rápido, pegada e"
-        " botões em uso)."
+        "🎬 FORMATO IDEAL: VÍDEO DEMONSTRATIVO (Unboxing rápido, encaixe e"
+        " funcionamento na prática)."
     )
     prompt_base_ia = (
         "Vertical 9:16 UGC video showing hands holding and testing"
-        f" {nome_puro[:45]} in a clean gaming setup, natural ambient"
-        " lighting, crisp close-up of buttons and matte finish, keeping exact"
+        f" {nome_puro[:45]} in a clean modern setup, natural ambient"
+        " lighting, crisp close-up of details and finish, keeping exact"
         " hardware appearance unchanged."
     )
     aviso_seguranca = (
-        "Games/Eletrônicos: destacar ergonomia, compatibilidade e uso real sem"
+        "Tech/Eletrônicos: destacar ergonomia, compatibilidade e uso real sem"
         " exageros."
     )
   elif any(
@@ -478,33 +536,39 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
           "infantil",
           "salon line",
           "litro",
+          "escova",
+          "creme",
       ]
   ):
+    angulo_copy = "praticidade no banho, rendimento da embalagem e cuidado diário"
     frase_destaque = (
-        "Embalagem de 1 litro com bom rendimento para a rotina de cuidados"
-        " capilares."
+        "Embalagem prática com ótimo rendimento para facilitar a rotina de"
+        " cuidados com os fios."
     )
+    beneficio_curto = f"{nome_curto}: rende muito no dia a dia"
     insight_formato = (
-        "🎬 FORMATO IDEAL: VÍDEO DE ECONOMIA E ESCALA (Mostrar o tamanho real"
-        " dos frascos de 1L)."
+        "🎬 FORMATO IDEAL: VÍDEO DE USO E RENDIMENTO (Mostrar o tamanho real"
+        " e consistência)."
     )
     prompt_base_ia = (
         f"Vertical 9:16 UGC video showing {nome_puro[:45]} in a bright modern"
-        " bathroom, natural lighting, emphasizing the large 1L bottle size and"
-        " clean packaging identical to reference, authentic everyday"
-        " aesthetic."
+        " bathroom, natural lighting, emphasizing the bottle size and clean"
+        " packaging identical to reference, authentic everyday aesthetic."
     )
     aviso_seguranca = (
         "Cabelos: destacar rendimento, tamanho e cuidado diário sem promessas"
         " milagrosas."
     )
   elif any(
-      k in t_lower for k in ["trento", "chocolate", "wafer", "doce", "snack"]
+      k in t_lower
+      for k in ["trento", "chocolate", "wafer", "doce", "snack", "café", "cafe"]
   ):
+    angulo_copy = "sabor, crocância e aquela pausa gostosa no meio do dia"
     frase_destaque = (
-        "Crocância na medida certa e recheio cremoso para salvar a pausa do"
-        " café sem pesar no bolso."
+        "Crocância na medida certa e recheio cremoso para acompanhar o café ou"
+        " matar a vontade de doce."
     )
+    beneficio_curto = f"{nome_curto}: crocante e cremoso na medida"
     insight_formato = (
         "📸 FORMATO IDEAL: VÍDEO CURTO DE PAUSA (Close na textura e consumo"
         " real)."
@@ -516,13 +580,15 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
     )
     aviso_seguranca = "Alimentos: foco em sabor, crocância e momento de consumo."
   else:
+    angulo_copy = "praticidade, economia de tempo e solução direta na rotina"
     frase_destaque = (
-        "Solução prática que resolve um perrengue real do dia a dia com ótimo"
-        " custo-benefício."
+        "Design inteligente que facilita a rotina e resolve uma tarefa chata"
+        " em poucos segundos."
     )
+    beneficio_curto = f"{nome_curto}: facilita muito a rotina"
     insight_formato = (
         "🎬 FORMATO IDEAL: VÍDEO DE DEMONSTRAÇÃO PRÁTICA (Mostrar o produto"
-        " resolvendo o problema na prática)."
+        " funcionando na prática)."
     )
     prompt_base_ia = (
         f"Vertical 9:16 UGC lifestyle video showing {nome_puro[:45]} in real"
@@ -534,12 +600,6 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
         " realmente entrega."
     )
 
-  palavras = nome_puro.split()
-  nome_curto = " ".join(palavras[:6]).rstrip(",-:")
-  if not nome_curto:
-    nome_curto = "Achado Imperdível"
-    nome_puro = "Produto"
-
   return (
       nome_puro,
       nome_curto,
@@ -548,6 +608,8 @@ def limpar_e_extrair_shopee(texto_bruto, titulo_manual=""):
       insight_formato,
       prompt_base_ia,
       aviso_seguranca,
+      angulo_copy,
+      beneficio_curto,
   )
 
 
@@ -560,6 +622,8 @@ def gerar_textos_hibridos(
     insight,
     prompt_fallback_ia,
     aviso_seguranca="",
+    angulo_copy="",
+    beneficio_curto="",
     usar_ia_forcado=False,
 ):
   plataforma = detectar_plataforma(link)
@@ -573,19 +637,16 @@ def gerar_textos_hibridos(
     base_tags = ["#achadostiktok", "#tiktokshopbrasil", "#achados"]
     cta_tiktok = "na sacolinha laranja aqui embaixo"
     cta_insta = "no link da bio (direto no TikTok Shop)"
-    cta_curto = f"{nome_curto} no TikTok Shop 👇"
   elif plataforma == "Shopee":
     tags_filtradas = [t for t in raw_tags if "tiktok" not in t.lower()]
     base_tags = ["#achadosshopee", "#shopeebrasil", "#achados"]
     cta_tiktok = "no link da bio / sacolinha"
     cta_insta = "no link da bio (oferta na Shopee)"
-    cta_curto = f"{nome_curto} na Shopee 👇"
   else:
     tags_filtradas = raw_tags
-    base_tags = ["#achados", "#dicasdecompras", "#custobeneficio"]
+    base_tags = ["#achados", "#dicasdodia", "#achadinhos"]
     cta_tiktok = "no link da bio / sacolinha"
     cta_insta = "no link da bio"
-    cta_curto = f"{nome_curto} no link 👇"
 
   tags_finais = []
   for t in base_tags + tags_filtradas:
@@ -595,35 +656,33 @@ def gerar_textos_hibridos(
 
   erro_ia_detalhe = ""
   if usar_ia_forcado and IA_DISPONIVEL:
-    prompt = f"""Você é o estrategista sênior de conteúdo do canal "Achados do Felipe" (Felipe de Oliveira Gonçalves).
-Seu estilo de escrita é idêntico ao de um criador experiente conversando direto com o seguidor: afiado, direto ao ponto, focado em economia real, quebra de objeção e utilidade prática.
+    prompt = f"""Você é o redator principal do perfil "Achados do Felipe" (@achadosfelipe01).
+Escreva como um criador real conversando direto com o público: natural, observador, sem exagero de vendedor e adaptado ao tipo exato do produto.
 
-PROIBIÇÕES ABSOLUTAS:
-1. NUNCA mencione "Shopee" se a PLATAFORMA DE ORIGEM for "{plataforma}" (se for TikTok Shop, trate 100% como achado do TikTok Shop / sacolinha laranja; só fale Shopee se a plataforma for Shopee).
-2. PROIBIDO usar frases bobas ou clichês robóticos como: "Olha o que achei para facilitar", "Sabe aquele produto que vale cada centavo?", "Design funcional e excelente acabamento", "Produto imperdível", "Vibe", "Stans".
-3. ANTI-VIOLAÇÃO TIKTOK: Nunca faça promessas médicas, de cura, tratamento clínico ou resultados garantidos/milagrosos. Respeite: {aviso_seguranca}
+REGRAS CRÍTICAS DE QUALIDADE (LEIA COM ATENÇÃO):
+1. PROIBIDO REPETIR MULETAS DE PREÇO: NÃO fique dizendo "sem gastar uma fortuna", "cansado de pagar caro", "custo-benefício" ou "não vai gastar" em todo produto! Adapte o gancho ao benefício real do item ({angulo_copy}). Só mencione preço/economia se o produto for um kit grande, embalagem econômica ou marca cara em oferta — e mesmo assim de forma natural.
+2. PLATAFORMA EXATA: A plataforma deste link é "{plataforma}". NUNCA mencione "Shopee" nos textos de TikTok/Instagram se a plataforma for "{plataforma}".
+3. PROIBIDO CLICHÊS ROBÓTICOS: Nunca use "Olha o que achei para facilitar", "Sabe aquele produto que vale cada centavo?", "Design funcional e excelente acabamento", "Produto imperdível", "Vibe", "Stans".
+4. ANTI-VIOLAÇÃO: Nunca faça promessas médicas, de cura ou resultado clínico garantido. Respeite: {aviso_seguranca}
 
 DADOS DO PRODUTO:
 - Produto: '{nome_longo}'
-- Plataforma de Origem: {plataforma}
+- Nome Curto: '{nome_curto}'
+- Ângulo Principal: {angulo_copy}
+- Plataforma: {plataforma}
 - Link: {link}
-- Categoria / Pasta: {categoria}
-- Tags permitidas: {tags}
+- Categoria: {categoria}
+- Tags sugeridas: {tags}
 
-COMO ESTRUTURAR A COPY:
-- Gancho (0-3s): Ataque uma dor real do bolso ou da rotina ou mostre uma oportunidade real de custo-benefício.
-- Corpo: Explique em linguagem falada e natural por que esse item específico resolve o problema sem parecer texto de catálogo.
-- CTA: Chamada clara para {cta_tiktok} (TikTok) ou {cta_insta} (Instagram).
-
-GERE OS 8 CAMPOS ABAIXO:
-1. TIK_TITULO: Gancho viral curto para abrir o vídeo no TikTok/Reels (máximo 55 caracteres).
-2. TIK_LEGENDA: Legenda estilo criador real para TikTok, chamando para {cta_tiktok} e fechando com: {tags}.
-3. INSTA_TITULO: Headline forte para capa de Reels ou primeiro card de carrossel no Instagram.
-4. INSTA_LEGENDA: Legenda persuasiva e fluida para Instagram + chamada para {cta_insta} + {tags}.
-5. PIN_TITULO: Título limpo e forte para SEO no Pinterest (até 100 caracteres).
-6. PIN_DESCRICAO: Descrição completa para SEO no Pinterest (700 a 850 caracteres), detalhando especificações, situações de uso, custo-benefício, link direto {link} e tags: {tags}.
-7. SHP_LEGENDA: Legenda curta e magnética com o link {link} que tenha OBRIGATORIAMENTE MENOS DE 150 CARACTERES no total.
-8. PROMPT_IA: Prompt detalhado em inglês (formato vertical 9:16) para gerar vídeo viral UGC de experimentação/uso real do produto '{nome_longo}' no dia a dia, mantendo 100% da aparência, cores, logos e formato do produto idênticos ao original, sem promessas enganosas.
+INSTRUÇÕES POR CAMPO:
+1. TIK_TITULO: Gancho curto para abrir o vídeo (máx 55 caracteres), focado no uso/benefício real do produto, sem falar de "fortuna".
+2. TIK_LEGENDA: Legenda conversacional para TikTok destacando por que esse item é útil/legal na prática + chamada para {cta_tiktok} + {tags}.
+3. INSTA_TITULO: Headline limpa para capa de Reels ou carrossel.
+4. INSTA_LEGENDA: Legenda direta e envolvente para Instagram + chamada para {cta_insta} + {tags}.
+5. PIN_TITULO: Título otimizado para SEO de busca no Pinterest (60 a 95 caracteres), escrito exatamente como alguém pesquisa no Google/Pinterest (ex: "Tênis Feminino Olympikus Acqua Leve para Caminhada e Dia a Dia"), SEM colocar "(TikTok Shop)" ou "(Shopee)" no título.
+6. PIN_DESCRICAO: Descrição rica para SEO no Pinterest (700 a 850 caracteres). Estruture com: (a) apresentação clara do produto e para quem serve, (b) principais características e benefícios práticos no uso diário, (c) ideias de uso/combinação e (d) chamada limpa com o link {link} e palavras-chave/hashtags {tags}.
+7. SHP_LEGENDA: Legenda magnética para Shopee Vídeo com gancho curto + link {link} + 2 hashtags relevantes. REGRA RÍGIDA: o texto inteiro (incluindo espaços, link e hashtags) DEVE ter entre 110 e 145 caracteres (NUNCA passe de 148 caracteres e NUNCA deixe sem hashtags).
+8. PROMPT_IA: Prompt detalhado em inglês (vertical 9:16) para gerar vídeo UGC realista de uso do produto '{nome_longo}', mantendo 100% da aparência, cores, logos e formato idênticos ao original.
 
 Responda EXATAMENTE no formato CHAVE: VALOR (cada chave iniciando uma linha):
 TIK_TITULO: ...
@@ -665,11 +724,23 @@ PROMPT_IA: ..."""
             campos[chave_atual] += "\n" + linha_limpa
 
         if campos["TIK_TITULO"] and campos["PIN_DESCRICAO"]:
-          shp_ok = campos["SHP_LEGENDA"]
-          if len(shp_ok) > 148:
-            shp_ok = f"{nome_curto} com bom custo-benefício 👇\n{link}"
+          shp_ok = campos["SHP_LEGENDA"].strip()
+          # Garante que tenha hashtag, link e respeite <= 148 caracteres
+          if (
+              not shp_ok
+              or len(shp_ok) > 148
+              or "#" not in shp_ok
+              or "http" not in shp_ok
+          ):
+            shp_ok = montar_legenda_curta_150(
+                nome_curto,
+                beneficio_curto or nome_curto,
+                link,
+                tags_finais,
+            )
+
           return (
-              f"IA Estratégica ({plataforma} | {modelo_nome}) 🤖",
+              f"IA Contextual ({plataforma} | {modelo_nome}) 🤖",
               campos["TIK_TITULO"],
               campos["TIK_LEGENDA"],
               campos["INSTA_TITULO"],
@@ -683,38 +754,41 @@ PROMPT_IA: ..."""
         erro_ia_detalhe = str(e)
         continue
 
-  tik_tit = f"Olha como fica no uso: {nome_curto}"
+  # --- MOTOR OFFLINE CONTEXTUAL (SEM MULETA DE PREÇO) ---
+  tik_tit = f"Na prática: {nome_curto}"
   tik_leg = (
-      f"Para quem quer evitar gasto desnecessário, o {nome_curto} entra na"
-      f" rotina com {destaque.lower()} Acesso direto {cta_tiktok} 👇\n{link}\n\n{tags}"
+      f"{destaque} Para quem busca {angulo_copy}, o {nome_curto} encaixa"
+      f" muito bem no dia a dia. Confere os detalhes {cta_tiktok} 👇\n{link}\n\n{tags}"
   )
 
-  insta_tit = f"Na prática: {nome_curto}"
+  insta_tit = f"Testando na rotina: {nome_curto}"
   insta_leg = (
-      f"Sem promessa exagerada — só o que entrega no dia a dia.\n\n"
-      f"O {nome_curto} faz sentido quando o foco é praticidade e conta que"
-      f" fecha. Detalhes e disponibilidade {cta_insta}.\n\n{tags}"
+      f"Direto ao ponto sobre o {nome_curto}:\n\n"
+      f"{destaque} Um item pensado para entregar {angulo_copy} sem"
+      f" complicação. Veja mais {cta_insta}.\n\n{tags}"
   )
 
-  pin_tit = f"{nome_curto} - Especificações e Uso Diário ({plataforma})"
+  pin_tit = f"{nome_longo} — Características, Uso Diário e Onde Encontrar"
   pin_desc = (
-      f"Guia rápido sobre {nome_longo} na pasta {categoria}. Veja como o item"
-      " se comporta no uso cotidiano e avalie se encaixa no seu objetivo"
-      " antes de comprar. Informações e link direto em"
-      f" {plataforma}: {link}\n\n"
-      f"Curadoria Achados do Felipe.\n\n{tags}"
+      f"Descubra tudo sobre {nome_longo} na categoria {categoria}. Ideal para"
+      f" quem procura {angulo_copy}, este modelo se destaca pela praticidade"
+      f" no uso cotidiano: {destaque}\n\n"
+      "Antes de escolher, confira as especificações, variações disponíveis e"
+      f" detalhes completos diretamente na página oficial ({plataforma}):"
+      f" {link}\n\n"
+      f"Salve este Pin na sua pasta de {categoria} para consultar depois.\n\n{tags}"
   )
 
-  shp_leg = f"{cta_curto}\n{link}"
-  if len(shp_leg) > 145:
-    shp_leg = f"{nome_curto[:45]} 👇\n{link}"
+  shp_leg = montar_legenda_curta_150(
+      nome_curto, beneficio_curto or nome_curto, link, tags_finais
+  )
 
   prompt_ia = prompt_fallback_ia
   motivo_fallback = (
       f" | Motivo IA: {erro_ia_detalhe[:120]}" if erro_ia_detalhe else ""
   )
   estrategia_final = (
-      f"Motor Offline ({plataforma}){motivo_fallback} | {insight}"
+      f"Motor Offline Contextual ({plataforma}){motivo_fallback} | {insight}"
   )
 
   return (
@@ -784,9 +858,17 @@ if menu == "🎬 Gerar":
             prod_row.get("destaques") or "Uso prático no dia a dia."
         )
 
-        _, _, _, _, insight_gerado, prompt_base_ia, aviso_seg = (
-            limpar_e_extrair_shopee(n_longo)
-        )
+        (
+            _,
+            _,
+            _,
+            _,
+            insight_gerado,
+            prompt_base_ia,
+            aviso_seg,
+            angulo_cp,
+            benef_curto,
+        ) = limpar_e_extrair_shopee(n_longo)
         usar_ia = "Inteligência Artificial" in modo_gen
 
         with st.spinner("Processando roteiros e salvando na nuvem..."):
@@ -809,6 +891,8 @@ if menu == "🎬 Gerar":
               insight_gerado,
               prompt_base_ia,
               aviso_seguranca=aviso_seg,
+              angulo_copy=angulo_cp,
+              beneficio_curto=benef_curto,
               usar_ia_forcado=usar_ia,
           )
 
@@ -868,14 +952,15 @@ elif menu == "📋 Pendentes":
         st.markdown("**Instagram Legenda**")
         st.code(row.get("insta_legenda") or "", language="text")
 
-        st.markdown("**Pinterest Título**")
+        st.markdown("**Pinterest Título (SEO)**")
         st.code(row.get("pin_titulo") or "", language="text")
 
-        st.markdown("**Pinterest Descrição SEO (Rica, ~800 caracteres)**")
+        st.markdown("**Pinterest Descrição SEO (~800 caracteres)**")
         st.code(row.get("pin_descricao") or "", language="text")
 
-        st.markdown("**Legenda Curta (<150 caracteres)**")
-        st.code(row.get("shp_legenda") or "", language="text")
+        shp_txt = row.get("shp_legenda") or ""
+        st.markdown(f"**Legenda Curta Shopee ({len(shp_txt)}/150 caracteres)**")
+        st.code(shp_txt, language="text")
 
         st.markdown("**🎥 Prompt de Vídeo / B-Roll (Para IA)**")
         st.code(row.get("prompt_ia") or "", language="text")
@@ -952,13 +1037,13 @@ elif menu == "📦 Catálogo":
         cerebro.setdefault("categorias_e_regras", {})[categoria_final] = {
             "tags_obrigatorias": [
                 "#achados",
-                "#dicasdecompras",
+                "#dicasdodia",
                 f"#{categoria_final.lower().replace(' ', '')}",
             ],
         }
         salvar_cerebro(cerebro)
 
-      nome_puro, nome_curto, link_limpo, frase_destaque, _, _, _ = (
+      nome_puro, nome_curto, link_limpo, frase_destaque, _, _, _, _, _ = (
           limpar_e_extrair_shopee(texto_zap, titulo_manual=titulo_rapido)
       )
 
@@ -1011,8 +1096,8 @@ elif menu == "🧠 Treinamento":
 elif menu == "🧬 Auto-Evolução":
   st.markdown("### 🧬 Painel de Auto-Evolução")
   st.info(
-      "Módulo ativo: Sincronização em nuvem via GitHub API, tags, plataformas e"
-      " grupos."
+      "Módulo ativo: Sincronização em nuvem via GitHub API, copy contextual"
+      " sem muleta de preço e legenda curta com hashtags."
   )
 
 elif menu == "📊 Dashboard":
